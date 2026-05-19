@@ -1,7 +1,7 @@
 {
   "name": "terras-do-codigo",
-  "version": "2.0.0",
-  "description": "Jogo narrativo que ensina conceitos de programação — 12 capítulos, quiz, inventário, glossário e muito mais.",
+  "version": "3.0.0",
+  "description": "Jogo narrativo que ensina programação — 17 capítulos, multiplayer, sandbox real, temas, conquistas e muito mais.",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
