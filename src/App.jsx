@@ -1,121 +1,219 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 
 const TH={
-  dark: {bg:"#1a1810",sf:"#22201a",cb:"#0e0b07",am:"#EF9F27",al:"rgba(239,159,39,.1)",ab:"rgba(239,159,39,.22)",tx:"#e0d4b4",mt:"rgba(224,212,180,.45)",gn:"#5DCAA5",cr:"#D85A30",nm:"Grimório Sombrio / Dark Grimoire"},
-  light:{bg:"#f0e8d0",sf:"#fdf7e8",cb:"#e2dcc8",am:"#7B4800",al:"rgba(123,72,0,.1)",ab:"rgba(123,72,0,.28)",tx:"#1a1004",mt:"rgba(26,16,4,.45)",gn:"#1A6B4A",cr:"#8B2000",nm:"Pergaminho Antigo / Old Parchment"},
-  cyber:{bg:"#04040e",sf:"#080820",cb:"#020209",am:"#00ffe0",al:"rgba(0,255,224,.07)",ab:"rgba(0,255,224,.22)",tx:"#c0f4ff",mt:"rgba(192,244,255,.38)",gn:"#00ff88",cr:"#ff2d78",nm:"Neon Futuro / Neon Future"},
+  dark:{bg:"#1a1810",sf:"#22201a",cb:"#0e0b07",am:"#EF9F27",al:"rgba(239,159,39,.1)",ab:"rgba(239,159,39,.22)",tx:"#e0d4b4",mt:"rgba(224,212,180,.45)",gn:"#5DCAA5",cr:"#D85A30"},
+  light:{bg:"#f0e8d0",sf:"#fdf7e8",cb:"#e2dcc8",am:"#7B4800",al:"rgba(123,72,0,.1)",ab:"rgba(123,72,0,.28)",tx:"#1a1004",mt:"rgba(26,16,4,.45)",gn:"#1A6B4A",cr:"#8B2000"},
+  cyber:{bg:"#04040e",sf:"#080820",cb:"#020209",am:"#00ffe0",al:"rgba(0,255,224,.07)",ab:"rgba(0,255,224,.22)",tx:"#c0f4ff",mt:"rgba(192,244,255,.38)",gn:"#00ff88",cr:"#ff2d78"},
 };
 
-// ── UI TRANSLATIONS ──────────────────────────────────────────
-const UI={
-  pt:{
-    lang:"pt",langLabel:"🇧🇷 Português",
-    subtitle:"Uma aventura de programação",
-    chapters:"17 capítulos · quiz · sandbox real · mapa · conquistas · multiplayer · mais",
-    playSolo:"Jogar solo →",playMulti:"Multiplayer →",playDaily:"Desafio diário →",
-    dailyToday:"Desafio de hoje:",
-    settingTheme:"Tema visual",settingDiff:"Dificuldade",settingCode:"Linguagem de código",settingUILang:"Idioma do jogo",settingPlayer:"Nome do jogador",
-    diffInit:"Iniciante",diffHard:"Desafiador",
-    langPy:"Python",langJs:"JavaScript",langBoth:"Ambas",
-    multiTitle:"Modo Multiplayer",
-    multiDesc:"Dois jogadores competem no mesmo dispositivo. Cada um joga todos os 17 capítulos. Quem terminar com mais pontos vence!",
-    player1:"Jogador 1",player2:"Jogador 2",startMulti:"Iniciar →",
-    switchTitle:"Fim do turno",switchScore:"Pontuação:",switchPass:"Passe o dispositivo para",switchBtn:"Iniciar turno de",
-    hintBtn:"Dica",hintFree:"(grátis)",hintCost:"(−{n} pts)",whatDo:"O que você faz?",
-    goodChoice:"Boa escolha! +10 pts",badChoice:"Poderia ser melhor",
-    conceptLearned:"Conceito aprendido",editCode:"Edite o código para praticar!",resetCode:"Resetar",
-    sandboxTitle:"Sandbox — Execute código real",sandboxRun:"Executar",sandboxRunning:"Executando...",sandboxHint:"Modifique e execute o código livremente!",sandboxNoOut:"(sem output — sem",
-    skulptLoading:"carregando Skulpt...",
-    quizTitle:"Quiz rápido",quizCheck:"Verificar →",quizRight:"+5 pontos! Correto!",quizWrong:"Não desta vez — mas agora você sabe!",
-    quizNextCh:"Próximo capítulo →",quizFinal:"Ver resultado final →",
-    sandboxNext:"Ver quiz →",conceptNext:"Sandbox — executar código →",
-    continueBtn:"Continuar →",conceptBtn:"Ver conceito →",
-    branchTag:"Desvio narrativo",
-    mapTitle:"Mapa do Reino do Código",mapKingdom:"Reino do Código",mapHint:"Clique em um capítulo para revisitá-lo",
-    achTitle:"Conquistas",achDone:"Desbloqueado",
-    lbTitle:"Placar de Líderes",lbEmpty:"Nenhuma partida registrada ainda. Complete o jogo para aparecer aqui!",
-    profileTitle:"Perfil de Desenvolvedor",profileScore:"Pontuação",profilePct:"Aproveitamento",profileAch:"Conquistas",
-    profileConcepts:"Conceitos dominados",profileInv:"Inventário",profileDl:"Baixar cartão (.txt)",
-    endTitle:"Missão cumprida!",endReplay:"Jogar novamente",endMap:"Revisar mapa",endCheat:"Cheatsheet",endProfile:"Perfil",endLB:"Placar",
-    endContinue:"Continue sua jornada aprendendo Python, JavaScript ou a linguagem que preferir!",
-    endMultiWin:"— Você venceu! 🏆",endMultiLose:"— Vitória deles!",endMultiDraw:"— Empate!",
-    back:"Voltar",pts:"pts",speed:"Contrarrelógio",time:"Tempo",
-    grimoire:"Grimório do Desenvolvedor",grimoireConcepts:"conceitos",grimoireEmpty:"Conclua capítulos para ver conceitos aqui.",
-    ranks:["Arquimago do Código","Desenvolvedor Sênior","Desenvolvedor Júnior","Aprendiz Promissor"],
-    cardTitle:"TERRAS DO CÓDIGO — Cartão de Desenvolvedor",
-    cardName:"Nome:",cardRank:"Rank:",cardScore:"Pontuação:",cardMode:"Modo:",cardDiff:"Dificuldade:",cardConcepts:"Conceitos dominados:",cardAch:"Conquistas:",cardDate:"Data:",
-    cheatTitle:"TERRAS DO CÓDIGO — Cheatsheet de Programação",
-    ach:[
-      {nm:"Primeiro Passo",desc:"Primeira boa escolha"},
-      {nm:"Sem Bengala",desc:"Capítulo sem dicas"},
-      {nm:"Mente Afiada",desc:"3 quizzes seguidos"},
-      {nm:"Relâmpago",desc:"Capítulo em <25s"},
-      {nm:"Poliglota",desc:"Viu Python e JS"},
-      {nm:"Mão na Massa",desc:"Executou código real"},
-      {nm:"Colecionador",desc:"6+ itens coletados"},
-      {nm:"Impecável",desc:"Zero erros no jogo"},
-      {nm:"Disciplinado",desc:"Desafio diário"},
-      {nm:"Competidor",desc:"Modo multiplayer"},
-    ],
-  },
-  en:{
-    lang:"en",langLabel:"🇺🇸 English",
-    subtitle:"A programming adventure",
-    chapters:"17 chapters · quiz · live sandbox · map · achievements · multiplayer · more",
-    playSolo:"Play solo →",playMulti:"Multiplayer →",playDaily:"Daily challenge →",
-    dailyToday:"Today's challenge:",
-    settingTheme:"Visual theme",settingDiff:"Difficulty",settingCode:"Code language",settingUILang:"Game language",settingPlayer:"Player name",
-    diffInit:"Beginner",diffHard:"Challenging",
-    langPy:"Python",langJs:"JavaScript",langBoth:"Both",
-    multiTitle:"Multiplayer Mode",
-    multiDesc:"Two players compete on the same device. Each plays all 17 chapters. The highest score wins!",
-    player1:"Player 1",player2:"Player 2",startMulti:"Start →",
-    switchTitle:"Turn over",switchScore:"Score:",switchPass:"Pass the device to",switchBtn:"Start turn for",
-    hintBtn:"Hint",hintFree:"(free)",hintCost:"(−{n} pts)",whatDo:"What do you do?",
-    goodChoice:"Good choice! +10 pts",badChoice:"Could be better",
-    conceptLearned:"Concept learned",editCode:"Edit the code to practice!",resetCode:"Reset",
-    sandboxTitle:"Sandbox — Run real code",sandboxRun:"Run",sandboxRunning:"Running...",sandboxHint:"Modify and run the code freely!",sandboxNoOut:"(no output — no",
-    skulptLoading:"loading Skulpt...",
-    quizTitle:"Quick quiz",quizCheck:"Check →",quizRight:"+5 points! Correct!",quizWrong:"Not this time — but now you know!",
-    quizNextCh:"Next chapter →",quizFinal:"See final result →",
-    sandboxNext:"See quiz →",conceptNext:"Sandbox — run code →",
-    continueBtn:"Continue →",conceptBtn:"See concept →",
-    branchTag:"Narrative branch",
-    mapTitle:"Map of the Code Kingdom",mapKingdom:"Code Kingdom",mapHint:"Click a chapter to revisit it",
-    achTitle:"Achievements",achDone:"Unlocked",
-    lbTitle:"Leaderboard",lbEmpty:"No matches recorded yet. Finish the game to appear here!",
-    profileTitle:"Developer Profile",profileScore:"Score",profilePct:"Performance",profileAch:"Achievements",
-    profileConcepts:"Mastered concepts",profileInv:"Inventory",profileDl:"Download card (.txt)",
-    endTitle:"Mission accomplished!",endReplay:"Play again",endMap:"Review map",endCheat:"Cheatsheet",endProfile:"Profile",endLB:"Leaderboard",
-    endContinue:"Continue your journey learning Python, JavaScript, or whichever language you prefer!",
-    endMultiWin:"— You won! 🏆",endMultiLose:"— They won!",endMultiDraw:"— It's a tie!",
-    back:"Back",pts:"pts",speed:"Speed Run",time:"Time",
-    grimoire:"Developer Grimoire",grimoireConcepts:"concepts",grimoireEmpty:"Complete chapters to see concepts here.",
-    ranks:["Code Archmage","Senior Developer","Junior Developer","Promising Apprentice"],
-    cardTitle:"LANDS OF CODE — Developer Card",
-    cardName:"Name:",cardRank:"Rank:",cardScore:"Score:",cardMode:"Mode:",cardDiff:"Difficulty:",cardConcepts:"Mastered concepts:",cardAch:"Achievements:",cardDate:"Date:",
-    cheatTitle:"LANDS OF CODE — Programming Cheatsheet",
-    ach:[
-      {nm:"First Step",desc:"First good choice"},
-      {nm:"No Crutches",desc:"Chapter without hints"},
-      {nm:"Sharp Mind",desc:"3 quizzes in a row"},
-      {nm:"Lightning",desc:"Chapter in <25s"},
-      {nm:"Polyglot",desc:"Saw Python and JS"},
-      {nm:"Hands On",desc:"Ran real code"},
-      {nm:"Collector",desc:"6+ items collected"},
-      {nm:"Flawless",desc:"Zero errors in the game"},
-      {nm:"Disciplined",desc:"Daily challenge"},
-      {nm:"Competitor",desc:"Multiplayer mode"},
-    ],
-  },
+const XP_LEVELS=[
+  {xp:0,lvl:1,ptTi:"Estagiário",enTi:"Intern"},
+  {xp:60,lvl:2,ptTi:"Aprendiz",enTi:"Apprentice"},
+  {xp:160,lvl:3,ptTi:"Calouro",enTi:"Newcomer"},
+  {xp:320,lvl:4,ptTi:"Iniciante",enTi:"Beginner"},
+  {xp:540,lvl:5,ptTi:"Dev Auxiliar",enTi:"Aux Dev"},
+  {xp:820,lvl:6,ptTi:"Programador",enTi:"Programmer"},
+  {xp:1160,lvl:7,ptTi:"Dev Júnior",enTi:"Junior Dev"},
+  {xp:1560,lvl:8,ptTi:"Desenvolvedor",enTi:"Developer"},
+  {xp:2020,lvl:9,ptTi:"Dev Pleno",enTi:"Mid Dev"},
+  {xp:2540,lvl:10,ptTi:"Eng. Júnior",enTi:"Junior Eng."},
+  {xp:3120,lvl:11,ptTi:"Eng. Pleno",enTi:"Mid Eng."},
+  {xp:3760,lvl:12,ptTi:"Eng. Sênior",enTi:"Senior Eng."},
+  {xp:4460,lvl:13,ptTi:"Tech Lead",enTi:"Tech Lead"},
+  {xp:5220,lvl:14,ptTi:"Arquiteto",enTi:"Architect"},
+  {xp:6040,lvl:15,ptTi:"Dev Sênior",enTi:"Senior Dev"},
+  {xp:6920,lvl:16,ptTi:"Especialista",enTi:"Specialist"},
+  {xp:7860,lvl:17,ptTi:"Mestre",enTi:"Master"},
+  {xp:8860,lvl:18,ptTi:"Grão-Mestre",enTi:"Grand Master"},
+  {xp:9920,lvl:19,ptTi:"Lendário",enTi:"Legendary"},
+  {xp:11040,lvl:20,ptTi:"Arquimago do Código",enTi:"Code Archmage"},
+];
+
+function getLevel(xp){
+  let cur=XP_LEVELS[0];
+  for(const l of XP_LEVELS){if(xp>=l.xp)cur=l;else break;}
+  const idx=XP_LEVELS.indexOf(cur);
+  const next=XP_LEVELS[idx+1];
+  const pct=next?Math.round(((xp-cur.xp)/(next.xp-cur.xp))*100):100;
+  return{...cur,next,pct,xp};
+}
+
+const BOSSES=[
+  {id:"boss1",afterIdx:4,icon:"ti-shield-bolt",ptTitle:"Mini-boss: A Guarda da Torre",enTitle:"Mini-boss: The Tower Guard",
+   ptIntro:"Você chegou ao topo dos primeiros 5 capítulos! A Guarda da Torre bloqueia a passagem — responda 3 perguntas para avançar.",
+   enIntro:"You've reached the top of the first 5 chapters! The Tower Guard blocks the way — answer 3 questions to advance.",
+   xpBonus:40,
+   questions:[
+    {q:"O que uma variável armazena?",qEn:"What does a variable store?",opts:["Um único valor nomeado","Uma lista de funções","Um arquivo no disco"],optsEn:["A single named value","A list of functions","A file on disk"],ok:0},
+    {q:"Qual estrutura testa uma condição?",qEn:"Which structure tests a condition?",opts:["for loop","if/else","função"],optsEn:["for loop","if/else","function"],ok:1},
+    {q:"range(3) gera quais valores?",qEn:"range(3) generates which values?",opts:["1,2,3","0,1,2","0,1,2,3"],optsEn:["1,2,3","0,1,2","0,1,2,3"],ok:1},
+   ]},
+  {id:"boss2",afterIdx:9,icon:"ti-dragon",ptTitle:"Mini-boss: O Dragão do Castelo",enTitle:"Mini-boss: The Castle Dragon",
+   ptIntro:"O Dragão do Castelo acorda! Para passar, prove seu domínio sobre os capítulos 6-10.",
+   enIntro:"The Castle Dragon awakens! To pass, prove your mastery of chapters 6-10.",
+   xpBonus:55,
+   questions:[
+    {q:"Como acessar 'nome' de um objeto?",qEn:"How to access 'name' from an object?",opts:["objeto[0]","objeto.nome","objeto->nome"],optsEn:["obj[0]","obj.name","obj->name"],ok:1},
+    {q:"O que é 'NameError'?",qEn:"What is 'NameError'?",opts:["Erro de memória","Variável usada sem definir","Divisão por zero"],optsEn:["Memory error","Variable used before defined","Division by zero"],ok:1},
+    {q:"O que '.upper()' faz em strings?",qEn:"What does '.upper()' do to strings?",opts:["Reverte","Maiúsculas","Remove espaços"],optsEn:["Reverses","Uppercase","Removes spaces"],ok:1},
+   ]},
+  {id:"boss3",afterIdx:14,icon:"ti-flame",ptTitle:"Mini-boss: O Oráculo Corrompido",enTitle:"Mini-boss: The Corrupted Oracle",
+   ptIntro:"O Oráculo Corrompido desafia seu conhecimento avançado! Derrote-o para acessar os capítulos finais.",
+   enIntro:"The Corrupted Oracle challenges your advanced knowledge! Defeat it to access the final chapters.",
+   xpBonus:70,
+   questions:[
+    {q:"O que é o 'caso base' na recursão?",qEn:"What is the 'base case' in recursion?",opts:["O maior valor","Condição que para a chamada","O retorno padrão"],optsEn:["The largest value","Condition that stops the call","The default return"],ok:1},
+    {q:"'finally' em try/except executa:",qEn:"'finally' in try/except runs:",opts:["Só se der erro","Sempre","Só se não der erro"],optsEn:["Only if error","Always","Only if no error"],ok:1},
+    {q:"'await' serve para:",qEn:"'await' is used for:",opts:["Cancelar","Esperar async sem bloquear","Repetir"],optsEn:["Cancel","Wait async without blocking","Repeat"],ok:1},
+   ]},
+];
+
+const BUGS=[
+  {id:"taverna",ptTitle:"Bug das Variáveis",enTitle:"Variables Bug",
+   broken:`nome = Byte\nnivel = 1\nprint(nome)\nprint(nivel)`,
+   fixed:`nome = "Byte"\nnivel = 1\nprint(nome)\nprint(nivel)`,
+   expected:"Byte\n1",
+   ptHint:"Strings precisam de aspas duplas ou simples.",
+   enHint:"Strings need double or single quotes."},
+  {id:"encruzilhada",ptTitle:"Bug das Condicionais",enTitle:"Conditionals Bug",
+   broken:`vida = 80\nif vida = 100:\n    print("cheio")\nelse:\n    print("ferido")`,
+   fixed:`vida = 80\nif vida == 100:\n    print("cheio")\nelse:\n    print("ferido")`,
+   expected:"ferido",
+   ptHint:"Comparação usa == (duplo), não = (atribuição).",
+   enHint:"Comparison uses == (double), not = (assignment)."},
+  {id:"torre",ptTitle:"Bug dos Loops",enTitle:"Loops Bug",
+   broken:`total = 0\nfor i in range(5)\n    total += i\nprint(total)`,
+   fixed:`total = 0\nfor i in range(5):\n    total += i\nprint(total)`,
+   expected:"10",
+   ptHint:"O 'for' precisa de dois-pontos ':' no final.",
+   enHint:"'for' needs a colon ':' at the end."},
+  {id:"oficina",ptTitle:"Bug das Funções",enTitle:"Functions Bug",
+   broken:`def dobrar(n):\n    resultado = n * 2\n\nprint(dobrar(5))`,
+   fixed:`def dobrar(n):\n    resultado = n * 2\n    return resultado\n\nprint(dobrar(5))`,
+   expected:"10",
+   ptHint:"A função calcula mas esquece de retornar o valor.",
+   enHint:"The function calculates but forgets to return the value."},
+  {id:"mercado",ptTitle:"Bug dos Arrays",enTitle:"Arrays Bug",
+   broken:`frutas = ["maçã","banana","laranja"]\nprint(frutas[3])`,
+   fixed:`frutas = ["maçã","banana","laranja"]\nprint(frutas[2])`,
+   expected:"laranja",
+   ptHint:"Índices começam em 0. O último elemento de 3 itens é índice 2.",
+   enHint:"Indices start at 0. The last element of 3 items is index 2."},
+  {id:"castelo",ptTitle:"Bug dos Objetos",enTitle:"Objects Bug",
+   broken:`heroi = {"nome": "Byte", "nivel": 5}\nprint(heroi["name"])`,
+   fixed:`heroi = {"nome": "Byte", "nivel": 5}\nprint(heroi["nome"])`,
+   expected:"Byte",
+   ptHint:"A chave no dicionário está em português: 'nome', não 'name'.",
+   enHint:"The dictionary key is in Portuguese: 'nome', not 'name'."},
+  {id:"oraculo",ptTitle:"Bug do Debug",enTitle:"Debugging Bug",
+   broken:`mensagem = "Olá mundo"\nprint(mensagem.uper())`,
+   fixed:`mensagem = "Olá mundo"\nprint(mensagem.upper())`,
+   expected:"OLÁ MUNDO",
+   ptHint:"O método está com erro de digitação: 'uper' em vez de 'upper'.",
+   enHint:"The method has a typo: 'uper' instead of 'upper'."},
+  {id:"biblioteca",ptTitle:"Bug das Strings",enTitle:"Strings Bug",
+   broken:`numero = 42\ntexto = "O número é: " + numero\nprint(texto)`,
+   fixed:`numero = 42\ntexto = "O número é: " + str(numero)\nprint(texto)`,
+   expected:"O número é: 42",
+   ptHint:"Não dá para concatenar string com inteiro — converta com str().",
+   enHint:"Can't concatenate string with integer — convert with str()."},
+  {id:"portal",ptTitle:"Bug dos Booleans",enTitle:"Booleans Bug",
+   broken:`ativo = true\nif ativo:\n    print("ligado")`,
+   fixed:`ativo = True\nif ativo:\n    print("ligado")`,
+   expected:"ligado",
+   ptHint:"Em Python, booleanos são True/False com letra maiúscula.",
+   enHint:"In Python, booleans are True/False with uppercase first letter."},
+  {id:"museu",ptTitle:"Bug dos Tipos",enTitle:"Types Bug",
+   broken:`a = "10"\nb = 5\nprint(a + b)`,
+   fixed:`a = "10"\nb = 5\nprint(int(a) + b)`,
+   expected:"15",
+   ptHint:"'10' é string. Para somar com inteiro, converta com int().",
+   enHint:"'10' is a string. To add with integer, convert with int()."},
+  {id:"espelho",ptTitle:"Bug da Recursão",enTitle:"Recursion Bug",
+   broken:`def contagem(n):\n    print(n)\n    contagem(n-1)\n\ncontagem(3)`,
+   fixed:`def contagem(n):\n    if n <= 0:\n        return\n    print(n)\n    contagem(n-1)\n\ncontagem(3)`,
+   expected:"3\n2\n1",
+   ptHint:"Falta o caso base — sem ele, a recursão nunca para!",
+   enHint:"Missing base case — without it, recursion never stops!"},
+  {id:"camara",ptTitle:"Bug do Try/Except",enTitle:"Try/Except Bug",
+   broken:`try:\n    x = int("abc")\nexcept ZeroDivisionError:\n    print("erro tratado")`,
+   fixed:`try:\n    x = int("abc")\nexcept ValueError:\n    print("erro tratado")`,
+   expected:"erro tratado",
+   ptHint:"int('abc') lança ValueError, não ZeroDivisionError.",
+   enHint:"int('abc') raises ValueError, not ZeroDivisionError."},
+  {id:"academia",ptTitle:"Bug das Classes",enTitle:"Classes Bug",
+   broken:`class Heroi:\n    def __init__(nome, nivel):\n        self.nome = nome\n        self.nivel = nivel\n\nh = Heroi("Byte",1)\nprint(h.nome)`,
+   fixed:`class Heroi:\n    def __init__(self, nome, nivel):\n        self.nome = nome\n        self.nivel = nivel\n\nh = Heroi("Byte",1)\nprint(h.nome)`,
+   expected:"Byte",
+   ptHint:"__init__ precisa de 'self' como primeiro parâmetro.",
+   enHint:"__init__ needs 'self' as its first parameter."},
+  {id:"mensageiro",ptTitle:"Bug do Async",enTitle:"Async Bug",
+   broken:`import asyncio\nasync def buscar():\n    asyncio.sleep(0)\n    return "pronto"\nasync def main():\n    r = buscar()\n    print(r)\nasyncio.run(main())`,
+   fixed:`import asyncio\nasync def buscar():\n    await asyncio.sleep(0)\n    return "pronto"\nasync def main():\n    r = await buscar()\n    print(r)\nasyncio.run(main())`,
+   expected:"pronto",
+   ptHint:"Funções async precisam de 'await' antes de serem chamadas.",
+   enHint:"Async functions need 'await' before being called."},
+  {id:"feiticeiro",ptTitle:"Bug do Regex",enTitle:"Regex Bug",
+   broken:`import re\ntexto = "Email: byte@code.com"\npadrao = r'[\\w]+@[\\w]+'\nemails = re.findall(padrao, texto)\nprint(emails[0])`,
+   fixed:`import re\ntexto = "Email: byte@code.com"\npadrao = r'[\\w.]+@[\\w.]+'\nemails = re.findall(padrao, texto)\nprint(emails[0])`,
+   expected:"byte@code.com",
+   ptHint:"O padrão precisa de '.' para capturar o domínio completo.",
+   enHint:"The pattern needs '.' to capture the full domain."},
+  {id:"biblioteca2",ptTitle:"Bug da Ordenação",enTitle:"Sorting Bug",
+   broken:`nums = [3,1,4,1,5,9,2,6]\nfor i in range(len(nums)):\n    for j in range(len(nums)-i):\n        if nums[j] > nums[j+1]:\n            nums[j],nums[j+1] = nums[j+1],nums[j]\nprint(nums)`,
+   fixed:`nums = [3,1,4,1,5,9,2,6]\nfor i in range(len(nums)):\n    for j in range(len(nums)-i-1):\n        if nums[j] > nums[j+1]:\n            nums[j],nums[j+1] = nums[j+1],nums[j]\nprint(nums)`,
+   expected:"[1, 1, 2, 3, 4, 5, 6, 9]",
+   ptHint:"O índice interno vai além dos limites — precisa de -1 extra.",
+   enHint:"The inner index goes out of bounds — needs an extra -1."},
+  {id:"oraculo2",ptTitle:"Bug do Big O",enTitle:"Big O Bug",
+   broken:`# Busca em lista ORDENADA\ndef buscar(lista, alvo):\n    for item in lista:\n        if item == alvo:\n            return True\n    return False\n\nprint(buscar([1,2,3,4,5,6,7,8], 7))`,
+   fixed:`# Busca binária O(log n)\ndef buscar(lista, alvo):\n    esq, dir = 0, len(lista)-1\n    while esq <= dir:\n        m = (esq+dir)//2\n        if lista[m] == alvo: return True\n        elif lista[m] < alvo: esq = m+1\n        else: dir = m-1\n    return False\n\nprint(buscar([1,2,3,4,5,6,7,8], 7))`,
+   expected:"True",
+   ptHint:"Lista ordenada → busca binária O(log n) em vez de linear O(n).",
+   enHint:"Sorted list → binary search O(log n) instead of linear O(n)."},
+];
+
+const ANIM_STEPS={
+  taverna:[
+    {code:"nome = \"Byte\"",vars:{},desc:{pt:"Antes de executar...",en:"Before executing..."}},
+    {code:"nome = \"Byte\"",vars:{nome:'"Byte"'},desc:{pt:"nome recebe o valor 'Byte'",en:"nome receives the value 'Byte'"}},
+    {code:"nivel = 1",vars:{nome:'"Byte"',nivel:1},desc:{pt:"nivel recebe o valor 1",en:"nivel receives the value 1"}},
+    {code:"vida = 100",vars:{nome:'"Byte"',nivel:1,vida:100},desc:{pt:"vida recebe o valor 100",en:"vida receives the value 100"}},
+    {code:"print(nome)",vars:{nome:'"Byte"',nivel:1,vida:100},desc:{pt:"Saída: Byte",en:"Output: Byte"},out:"Byte"},
+  ],
+  torre:[
+    {code:"for i in range(5):",vars:{i:"—",total:0},desc:{pt:"total começa em 0, i ainda não existe",en:"total starts at 0, i doesn't exist yet"}},
+    {code:"    total += i  # i=0",vars:{i:0,total:0},desc:{pt:"i=0, total=0+0=0",en:"i=0, total=0+0=0"}},
+    {code:"    total += i  # i=1",vars:{i:1,total:1},desc:{pt:"i=1, total=0+1=1",en:"i=1, total=0+1=1"}},
+    {code:"    total += i  # i=2",vars:{i:2,total:3},desc:{pt:"i=2, total=1+2=3",en:"i=2, total=1+2=3"}},
+    {code:"    total += i  # i=3",vars:{i:3,total:6},desc:{pt:"i=3, total=3+3=6",en:"i=3, total=3+3=6"}},
+    {code:"    total += i  # i=4",vars:{i:4,total:10},desc:{pt:"i=4, total=6+4=10",en:"i=4, total=6+4=10"}},
+    {code:"print(total)",vars:{i:4,total:10},desc:{pt:"Loop terminou! Saída: 10",en:"Loop done! Output: 10"},out:"10"},
+  ],
+  oficina:[
+    {code:"def dobrar(n):",vars:{},desc:{pt:"Definindo a função — nada executa ainda",en:"Defining the function — nothing runs yet"}},
+    {code:"dobrar(5)",vars:{},desc:{pt:"Chamando dobrar com n=5",en:"Calling dobrar with n=5"}},
+    {code:"    res = n * 2",vars:{n:5,res:10},desc:{pt:"Dentro da função: res = 5 × 2 = 10",en:"Inside the function: res = 5 × 2 = 10"}},
+    {code:"    return res",vars:{n:5,res:10},desc:{pt:"Retorna 10 para quem chamou",en:"Returns 10 to the caller"},out:"10"},
+    {code:"dobrar(8)",vars:{},desc:{pt:"Chamando novamente com n=8",en:"Calling again with n=8"}},
+    {code:"    return 8*2",vars:{n:8,res:16},desc:{pt:"Mesma função, novo valor: 16",en:"Same function, new value: 16"},out:"16"},
+  ],
+  mercado:[
+    {code:"frutas = [...]",vars:{frutas:"[ ]"},desc:{pt:"Array começa vazio",en:"Array starts empty"}},
+    {code:"frutas = [\"maçã\",\"banana\",\"uva\"]",vars:{frutas:["maçã","banana","uva"]},desc:{pt:"3 elementos nos índices 0,1,2",en:"3 elements at indices 0,1,2"}},
+    {code:"frutas[0]",vars:{frutas:["maçã","banana","uva"],acesso:"frutas[0]"},desc:{pt:"Índice 0 → 'maçã'",en:"Index 0 → 'maçã'"},out:"maçã"},
+    {code:"frutas.append(\"kiwi\")",vars:{frutas:["maçã","banana","uva","kiwi"]},desc:{pt:"append adiciona ao final, agora 4 itens",en:"append adds to end, now 4 items"}},
+    {code:"len(frutas)",vars:{frutas:["maçã","banana","uva","kiwi"]},desc:{pt:"len() conta: 4 elementos",en:"len() counts: 4 elements"},out:"4"},
+  ],
 };
 
-const ACH_IDS=["first_good","no_hints","streak3","speed","polyglot","sandbox_a","collector","flawless","daily","multi"];
-const ACH_ICONS=["ti-star","ti-eye-off","ti-brain","ti-bolt","ti-code","ti-terminal-2","ti-backpack","ti-trophy","ti-calendar","ti-users"];
+const ACH_IDS=["first_good","no_hints","streak3","speed","polyglot","sandbox_a","collector","flawless","daily","multi","boss_slayer","bug_fixer","streak7","lvl10","all_chapters"];
+const ACH_ICONS=["ti-star","ti-eye-off","ti-brain","ti-bolt","ti-code","ti-terminal-2","ti-backpack","ti-trophy","ti-calendar","ti-users","ti-shield-bolt","ti-bug","ti-flame","ti-trending-up","ti-crown"];
 
-function mkAudio(){try{const c=new(window.AudioContext||window.webkitAudioContext)();const t=(f,d,y="sine",v=.15)=>{const o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.type=y;o.frequency.value=f;g.gain.setValueAtTime(v,c.currentTime);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+d);o.start();o.stop(c.currentTime+d);};return{ok:()=>{t(523,.1);setTimeout(()=>t(784,.2),140);},err:()=>t(180,.3,"sawtooth",.1),click:()=>t(440,.04),win:()=>[523,659,784,1047].forEach((f,i)=>setTimeout(()=>t(f,.25),i*120)),tick:()=>t(880,.03,"square",.04)};}catch{return{ok:()=>{},err:()=>{},click:()=>{},win:()=>{},tick:()=>{}};}}
+function mkAudio(){try{const c=new(window.AudioContext||window.webkitAudioContext)();const t=(f,d,y="sine",v=.15)=>{const o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.type=y;o.frequency.value=f;g.gain.setValueAtTime(v,c.currentTime);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+d);o.start();o.stop(c.currentTime+d);};return{ok:()=>{t(523,.1);setTimeout(()=>t(784,.2),140);},err:()=>t(180,.3,"sawtooth",.1),click:()=>t(440,.04),win:()=>[523,659,784,1047].forEach((f,i)=>setTimeout(()=>t(f,.25),i*120)),tick:()=>t(880,.03,"square",.04),boss:()=>[349,440,523,659,784].forEach((f,i)=>setTimeout(()=>t(f,.18,i%2?"square":"sine"),i*90))};}catch{return{ok:()=>{},err:()=>{},click:()=>{},win:()=>{},tick:()=>{},boss:()=>{}};}}
 
-// ── SCENES (PT + EN) ──────────────────────────────────────────
+function S(sc,f,lg){const ef=f+"En";return(lg==="en"&&sc[ef])?sc[ef]:sc[f];}
+function SC(c,f,lg){const ef=f+"En";return(lg==="en"&&c[ef])?c[ef]:c[f];}
 const SCENES=[
   {id:"taverna",ch:"Cap. 1",chEn:"Ch. 1",icon:"ti-home",portrait:{ic:"ti-wand",cl:"#9F77DD",nm:"Varinha, a elfa",nmEn:"Varinha, the Elf"},mapPos:{x:12,y:55},
    item:{icon:"ti-book",name:"Grande Registro",nameEn:"Great Registry"},
@@ -554,133 +652,484 @@ const SCENES=[
     opts:["O(n²)","O(n)","O(log n)"],optsEn:["O(n²)","O(n)","O(log n)"],ok:2}},
 ];
 
-// Helper: get localized scene field
-function S(scene, field, lang){
-  const enField = field+"En";
-  return (lang==="en" && scene[enField]) ? scene[enField] : scene[field];
-}
-// Get choice localized
-function SC(choice, field, lang){
-  const enField = field+"En";
-  return (lang==="en" && choice[enField]) ? choice[enField] : choice[field];
-}
-// Localized title for scene
-function scTitle(scene, lang){ return lang==="en" ? (scene.titleEn||scene.title) : scene.title; }
+// ── UI TRANSLATIONS ──────────────────────────────────────────
+const UI={
+  pt:{lang:"pt",langLabel:"🇧🇷 Português",subtitle:"Uma aventura de programação",
+   chapters:"17 capítulos · boss fights · corrija o bug · XP persistente · multiplayer · mais",
+   playSolo:"Jogar solo →",playMulti:"Multiplayer →",playDaily:"Desafio diário →",dailyToday:"Desafio de hoje:",
+   settingTheme:"Tema visual",settingDiff:"Dificuldade",settingCode:"Linguagem de código",settingUILang:"Idioma",settingPlayer:"Nome do jogador",settingFont:"Tamanho do texto",
+   diffInit:"Iniciante",diffHard:"Desafiador",langPy:"Python",langJs:"JavaScript",langBoth:"Ambas",
+   multiTitle:"Modo Multiplayer",multiDesc:"Dois jogadores competem no mesmo dispositivo. Quem terminar com mais pontos vence!",
+   player1:"Jogador 1",player2:"Jogador 2",startMulti:"Iniciar →",
+   switchTitle:"Fim do turno",switchScore:"Pontuação:",switchPass:"Passe o dispositivo para",switchBtn:"Iniciar turno de",
+   hintBtn:"Dica",hintFree:"(grátis)",hintCost:"(−{n} pts)",whatDo:"O que você faz?",
+   goodChoice:"Boa escolha! +10 pts",badChoice:"Poderia ser melhor",
+   conceptLearned:"Conceito aprendido",editCode:"Edite o código para praticar!",resetCode:"Resetar",
+   animTab:"Animação",codeTab:"Código",sandboxTab:"Sandbox",
+   sandboxTitle:"Sandbox — Execute código real",sandboxRun:"Executar",sandboxRunning:"Executando...",sandboxHint:"Modifique e execute!",sandboxNoOut:"(sem output — sem",skulptLoading:"carregando Skulpt...",
+   bugTitle:"🐛 Corrija o Bug",bugHint:"Dica:",bugRun:"Testar correção",bugRunning:"Testando...",bugExpected:"Saída esperada:",bugGot:"Sua saída:",bugPass:"Bug corrigido! +15 pts 🎉",bugFail:"Ainda tem bug — continue tentando!",bugSkip:"Pular →",
+   animPrev:"◀",animNext:"▶",animVars:"Variáveis",animOut:"Saída",animStep:"Passo",animOf:"de",animNoAnim:"Sem animação para este conceito.",
+   quizTitle:"Quiz rápido",quizCheck:"Verificar →",quizRight:"+5 pontos! Correto!",quizWrong:"Não desta vez — mas agora você sabe!",quizNextCh:"Próximo capítulo →",quizFinal:"Ver resultado final →",
+   sandboxNext:"Sandbox →",conceptNext:"Próximo: Sandbox →",continueBtn:"Continuar →",conceptBtn:"Ver conceito →",branchTag:"Desvio narrativo",
+   bossIntro:"MINI-BOSS",bossQ:"Pergunta",bossOf:"de",bossCorrect:"Correto! +",bossWrong:"Errou — mas siga em frente!",bossWin:"Boss derrotado!",bossBonusXP:"XP bônus:",bossNext:"Próximo capítulo →",bossTime:"Tempo restante:",
+   mapTitle:"Mapa do Reino do Código",mapKingdom:"Reino do Código",mapHint:"Clique em um capítulo para revisitá-lo",
+   achTitle:"Conquistas",achDone:"Desbloqueado",
+   lbTitle:"Placar de Líderes",lbEmpty:"Nenhuma partida ainda. Complete o jogo!",
+   profileTitle:"Perfil de Desenvolvedor",profileScore:"Pontuação",profilePct:"Aproveitamento",profileAch:"Conquistas",
+   profileConcepts:"Conceitos dominados",profileInv:"Inventário",profileDl:"Baixar cartão (.txt)",profileShare:"Compartilhar card",profileAvatar:"Gerar avatar IA",profileAvatarLoading:"Gerando avatar...",
+   reviewTitle:"Revisão de Erros",reviewEmpty:"Nenhum erro! Você foi impecável!",reviewClose:"Fechar →",reviewQ:"Pergunta:",reviewCorrect:"Resposta correta:",
+   xpLabel:"XP",xpLevel:"Nível",xpNext:"próximo nível",
+   streakLabel:"streak",streakDays:"dias",streakNew:"Novo recorde!",
+   endTitle:"Missão cumprida!",endReplay:"Jogar novamente",endMap:"Revisar mapa",endCheat:"Cheatsheet",endProfile:"Perfil",endLB:"Placar",endReview:"Revisar erros",
+   endContinue:"Continue sua jornada aprendendo Python, JavaScript ou a linguagem que preferir!",
+   endMultiWin:"— Você venceu! 🏆",endMultiLose:"— Vitória deles!",endMultiDraw:"— Empate!",
+   back:"Voltar",pts:"pts",speed:"Contrarrelógio",time:"Tempo",
+   grimoire:"Grimório do Desenvolvedor",grimoireConcepts:"conceitos",grimoireEmpty:"Conclua capítulos para ver conceitos aqui.",
+   ranks:["Arquimago do Código","Desenvolvedor Sênior","Desenvolvedor Júnior","Aprendiz Promissor"],
+   cardTitle:"TERRAS DO CÓDIGO — Cartão de Desenvolvedor",cardName:"Nome:",cardRank:"Rank:",cardScore:"Pontuação:",cardMode:"Modo:",cardDiff:"Dificuldade:",cardConcepts:"Conceitos:",cardAch:"Conquistas:",cardDate:"Data:",
+   cheatTitle:"TERRAS DO CÓDIGO — Cheatsheet de Programação",
+   ach:[
+    {nm:"Primeiro Passo",desc:"Primeira boa escolha"},
+    {nm:"Sem Bengala",desc:"Capítulo sem dicas"},
+    {nm:"Mente Afiada",desc:"3 quizzes seguidos"},
+    {nm:"Relâmpago",desc:"Capítulo em <25s"},
+    {nm:"Poliglota",desc:"Viu Python e JS"},
+    {nm:"Mão na Massa",desc:"Executou código real"},
+    {nm:"Colecionador",desc:"6+ itens coletados"},
+    {nm:"Impecável",desc:"Zero erros no jogo"},
+    {nm:"Disciplinado",desc:"Desafio diário"},
+    {nm:"Competidor",desc:"Modo multiplayer"},
+    {nm:"Caçador de Bosses",desc:"Derrotou um mini-boss"},
+    {nm:"Exterminador de Bugs",desc:"Corrigiu um bug"},
+    {nm:"7 Dias Seguidos",desc:"Streak de 7 dias"},
+    {nm:"Nível 10",desc:"Atingiu o nível 10"},
+    {nm:"Completou Tudo",desc:"Todos os 17 capítulos"},
+   ],
+  },
+  en:{lang:"en",langLabel:"🇺🇸 English",subtitle:"A programming adventure",
+   chapters:"17 chapters · boss fights · fix the bug · persistent XP · multiplayer · more",
+   playSolo:"Play solo →",playMulti:"Multiplayer →",playDaily:"Daily challenge →",dailyToday:"Today's challenge:",
+   settingTheme:"Visual theme",settingDiff:"Difficulty",settingCode:"Code language",settingUILang:"Language",settingPlayer:"Player name",settingFont:"Text size",
+   diffInit:"Beginner",diffHard:"Challenging",langPy:"Python",langJs:"JavaScript",langBoth:"Both",
+   multiTitle:"Multiplayer Mode",multiDesc:"Two players compete on the same device. Highest score wins!",
+   player1:"Player 1",player2:"Player 2",startMulti:"Start →",
+   switchTitle:"Turn over",switchScore:"Score:",switchPass:"Pass the device to",switchBtn:"Start turn for",
+   hintBtn:"Hint",hintFree:"(free)",hintCost:"(−{n} pts)",whatDo:"What do you do?",
+   goodChoice:"Good choice! +10 pts",badChoice:"Could be better",
+   conceptLearned:"Concept learned",editCode:"Edit the code to practice!",resetCode:"Reset",
+   animTab:"Animation",codeTab:"Code",sandboxTab:"Sandbox",
+   sandboxTitle:"Sandbox — Run real code",sandboxRun:"Run",sandboxRunning:"Running...",sandboxHint:"Modify and run freely!",sandboxNoOut:"(no output — no",skulptLoading:"loading Skulpt...",
+   bugTitle:"🐛 Fix the Bug",bugHint:"Hint:",bugRun:"Test fix",bugRunning:"Testing...",bugExpected:"Expected output:",bugGot:"Your output:",bugPass:"Bug fixed! +15 pts 🎉",bugFail:"Still buggy — keep trying!",bugSkip:"Skip →",
+   animPrev:"◀",animNext:"▶",animVars:"Variables",animOut:"Output",animStep:"Step",animOf:"of",animNoAnim:"No animation for this concept.",
+   quizTitle:"Quick quiz",quizCheck:"Check →",quizRight:"+5 points! Correct!",quizWrong:"Not this time — but now you know!",quizNextCh:"Next chapter →",quizFinal:"See final result →",
+   sandboxNext:"Sandbox →",conceptNext:"Next: Sandbox →",continueBtn:"Continue →",conceptBtn:"See concept →",branchTag:"Narrative branch",
+   bossIntro:"MINI-BOSS",bossQ:"Question",bossOf:"of",bossCorrect:"Correct! +",bossWrong:"Wrong — but keep going!",bossWin:"Boss defeated!",bossBonusXP:"Bonus XP:",bossNext:"Next chapter →",bossTime:"Time left:",
+   mapTitle:"Map of the Code Kingdom",mapKingdom:"Code Kingdom",mapHint:"Click a chapter to revisit it",
+   achTitle:"Achievements",achDone:"Unlocked",
+   lbTitle:"Leaderboard",lbEmpty:"No matches yet. Finish the game!",
+   profileTitle:"Developer Profile",profileScore:"Score",profilePct:"Performance",profileAch:"Achievements",
+   profileConcepts:"Mastered concepts",profileInv:"Inventory",profileDl:"Download card (.txt)",profileShare:"Share card",profileAvatar:"Generate AI avatar",profileAvatarLoading:"Generating avatar...",
+   reviewTitle:"Error Review",reviewEmpty:"No errors! You were flawless!",reviewClose:"Close →",reviewQ:"Question:",reviewCorrect:"Correct answer:",
+   xpLabel:"XP",xpLevel:"Level",xpNext:"next level",
+   streakLabel:"streak",streakDays:"days",streakNew:"New record!",
+   endTitle:"Mission accomplished!",endReplay:"Play again",endMap:"Review map",endCheat:"Cheatsheet",endProfile:"Profile",endLB:"Leaderboard",endReview:"Review errors",
+   endContinue:"Continue your journey learning Python, JavaScript, or any language you prefer!",
+   endMultiWin:"— You won! 🏆",endMultiLose:"— They won!",endMultiDraw:"— It's a tie!",
+   back:"Back",pts:"pts",speed:"Speed Run",time:"Time",
+   grimoire:"Developer Grimoire",grimoireConcepts:"concepts",grimoireEmpty:"Complete chapters to see concepts here.",
+   ranks:["Code Archmage","Senior Developer","Junior Developer","Promising Apprentice"],
+   cardTitle:"LANDS OF CODE — Developer Card",cardName:"Name:",cardRank:"Rank:",cardScore:"Score:",cardMode:"Mode:",cardDiff:"Difficulty:",cardConcepts:"Concepts:",cardAch:"Achievements:",cardDate:"Date:",
+   cheatTitle:"LANDS OF CODE — Programming Cheatsheet",
+   ach:[
+    {nm:"First Step",desc:"First good choice"},
+    {nm:"No Crutches",desc:"Chapter without hints"},
+    {nm:"Sharp Mind",desc:"3 quizzes in a row"},
+    {nm:"Lightning",desc:"Chapter in <25s"},
+    {nm:"Polyglot",desc:"Saw Python and JS"},
+    {nm:"Hands On",desc:"Ran real code"},
+    {nm:"Collector",desc:"6+ items collected"},
+    {nm:"Flawless",desc:"Zero errors"},
+    {nm:"Disciplined",desc:"Daily challenge"},
+    {nm:"Competitor",desc:"Multiplayer mode"},
+    {nm:"Boss Slayer",desc:"Defeated a mini-boss"},
+    {nm:"Bug Exterminator",desc:"Fixed a bug"},
+    {nm:"7-Day Streak",desc:"7 day streak"},
+    {nm:"Level 10",desc:"Reached level 10"},
+    {nm:"All Chapters",desc:"All 17 chapters"},
+   ],
+  },
+};
 
-// ── SMALL UTILITY COMPONENTS ────────────────────────────────
+// ── UTILITY COMPONENTS ───────────────────────────────────────
 function NBtn({children,onClick,disabled,T}){const[h,sh]=useState(false);return(<button onClick={onClick} disabled={disabled} onMouseEnter={()=>sh(true)} onMouseLeave={()=>sh(false)} style={{background:"transparent",border:`0.5px solid ${disabled?T.ab:T.am}`,color:disabled?T.mt:T.am,padding:"0.6rem 1.4rem",fontSize:"0.88rem",fontFamily:"Georgia,serif",cursor:disabled?"default":"pointer",borderRadius:"6px",opacity:h&&!disabled?1:0.85,transition:"opacity 0.2s"}}>{children}</button>);}
-
 function CBtn({children,onClick,T}){const[h,sh]=useState(false);return(<button onClick={onClick} onMouseEnter={()=>sh(true)} onMouseLeave={()=>sh(false)} style={{background:h?T.al:"transparent",border:`0.5px solid ${h?T.am:T.ab}`,color:T.tx,padding:"0.85rem 1.1rem",textAlign:"left",cursor:"pointer",borderRadius:"8px",fontSize:"0.92rem",fontFamily:"Georgia,serif",lineHeight:1.5,width:"100%",transition:"all 0.18s"}}><i className="ti ti-arrow-right" style={{fontSize:13,marginRight:8,color:T.am,verticalAlign:"-1px"}} aria-hidden="true"/>{children}</button>);}
-
 function ProgBar({idx,total,T}){return(<div style={{display:"flex",gap:4,marginBottom:"1.5rem"}}>{Array.from({length:total},(_,i)=>(<div key={i} style={{flex:1,height:3,borderRadius:99,background:i<idx?T.am:i===idx?"rgba(239,159,39,0.4)":"rgba(239,159,39,0.12)",transition:"background 0.5s"}}/>))}</div>);}
-
 function Portrait({p,lang,T}){const nm=lang==="en"?(p.nmEn||p.nm):p.nm;return(<div style={{display:"flex",alignItems:"center",gap:10,marginBottom:"1rem"}}><div style={{width:36,height:36,borderRadius:"50%",background:"rgba(127,119,221,0.15)",border:`0.5px solid ${T.ab}`,display:"flex",alignItems:"center",justifyContent:"center"}}><i className={`ti ${p.ic}`} style={{fontSize:16,color:p.cl}} aria-hidden="true"/></div><span style={{fontSize:12,color:T.mt,fontFamily:"Georgia,serif",fontStyle:"italic"}}>{nm}</span></div>);}
-
-function AchToast({ach,T,onClose}){useEffect(()=>{const t=setTimeout(onClose,3500);return()=>clearTimeout(t);},[]);return(<div style={{position:"fixed",top:20,right:20,zIndex:999,background:T.sf,border:`0.5px solid ${T.am}`,borderRadius:8,padding:"0.75rem 1rem",maxWidth:240,boxShadow:"none"}}><div style={{display:"flex",alignItems:"center",gap:8}}><i className={`ti ${ach.icon}`} style={{fontSize:18,color:T.am}} aria-hidden="true"/><div><div style={{fontSize:12,color:T.am,fontWeight:500}}>{ach.nm}</div><div style={{fontSize:11,color:T.mt}}>{ach.desc}</div></div></div></div>);}
-
+function AchToast({ach,T,onClose}){useEffect(()=>{const t=setTimeout(onClose,3500);return()=>clearTimeout(t);},[]);return(<div style={{position:"fixed",top:20,right:20,zIndex:999,background:T.sf,border:`0.5px solid ${T.am}`,borderRadius:8,padding:"0.75rem 1rem",maxWidth:240}}><div style={{display:"flex",alignItems:"center",gap:8}}><i className={`ti ${ach.icon}`} style={{fontSize:18,color:T.am}} aria-hidden="true"/><div><div style={{fontSize:12,color:T.am,fontWeight:500}}>{ach.nm}</div><div style={{fontSize:11,color:T.mt}}>{ach.desc}</div></div></div></div>);}
 function TimerBar({secs,max,T,L}){const pct=Math.round((secs/max)*100);const cl=secs<10?T.cr:secs<20?T.am:T.gn;return(<div style={{marginBottom:"0.75rem"}}><div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}><span style={{fontSize:11,color:cl,fontFamily:"Georgia,serif"}}><i className="ti ti-clock" style={{fontSize:11,marginRight:4}} aria-hidden="true"/>{L.time}</span><span style={{fontSize:13,fontWeight:500,color:cl}}>{secs}s</span></div><div style={{height:4,background:T.al,borderRadius:99,overflow:"hidden"}}><div style={{width:`${pct}%`,height:"100%",background:cl,transition:"width 1s linear",borderRadius:99}}/></div></div>);}
 
-// ── MAP ──────────────────────────────────────────────────────
-function MapScreen({scenes,inventory,onJump,onBack,T,L}){return(<div><div style={{display:"flex",alignItems:"center",gap:12,marginBottom:"1.25rem"}}><button onClick={onBack} style={{background:"transparent",border:"none",color:T.mt,cursor:"pointer",fontSize:13,fontFamily:"Georgia,serif"}}><i className="ti ti-arrow-left" style={{fontSize:13,marginRight:6}} aria-hidden="true"/>{L.back}</button><p style={{fontSize:10,letterSpacing:3,color:T.am,textTransform:"uppercase",margin:0}}>{L.mapTitle}</p></div><div style={{background:T.sf,border:`0.5px solid ${T.ab}`,borderRadius:8,padding:"1rem",position:"relative",overflow:"hidden"}}><svg viewBox="0 0 100 100" style={{width:"100%",height:"auto",display:"block"}} aria-label={L.mapTitle}><rect width="100" height="100" fill={T.bg} rx="4"/><text x="50" y="8" textAnchor="middle" fontSize="3.5" fill={T.am} fontFamily="Georgia,serif">{L.mapKingdom}</text>{scenes.map((sc,i)=>{if(i===0)return null;const prev=scenes[i-1];return(<line key={`l${i}`} x1={prev.mapPos.x} y1={prev.mapPos.y} x2={sc.mapPos.x} y2={sc.mapPos.y} stroke={T.ab} strokeWidth="0.5"/>);})}{scenes.map((sc,i)=>{const done=inventory.find(s=>s.id===sc.id);const clr=done?T.gn:T.mt;return(<g key={sc.id} onClick={()=>onJump(i)} style={{cursor:"pointer"}}><circle cx={sc.mapPos.x} cy={sc.mapPos.y} r="3.5" fill={done?T.gn:T.sf} stroke={done?T.gn:T.ab} strokeWidth="0.5"/><text x={sc.mapPos.x} y={sc.mapPos.y-5} textAnchor="middle" fontSize="2.2" fill={clr} fontFamily="Georgia,serif">{sc.ch}</text>{done&&<text x={sc.mapPos.x} y={sc.mapPos.y+0.8} textAnchor="middle" fontSize="2.5" fill={T.bg}>✓</text>}</g>);})}></svg><p style={{fontSize:11,color:T.mt,textAlign:"center",marginTop:"0.5rem",fontFamily:"Georgia,serif"}}>{L.mapHint}</p></div></div>);}
-
-// ── ACHIEVEMENTS ─────────────────────────────────────────────
-function AchScreen({unlocked,T,L,onBack}){return(<div><div style={{display:"flex",alignItems:"center",gap:12,marginBottom:"1.25rem"}}><button onClick={onBack} style={{background:"transparent",border:"none",color:T.mt,cursor:"pointer",fontSize:13,fontFamily:"Georgia,serif"}}><i className="ti ti-arrow-left" style={{fontSize:13,marginRight:6}} aria-hidden="true"/>{L.back}</button><p style={{fontSize:10,letterSpacing:3,color:T.am,textTransform:"uppercase",margin:0}}>{L.achTitle}</p></div><div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(190px,1fr))",gap:8}}>{ACH_IDS.map((id,i)=>{const got=unlocked.includes(id);const a=L.ach[i];return(<div key={id} style={{background:got?T.al:T.sf,border:`0.5px solid ${got?T.am:T.ab}`,borderRadius:8,padding:"0.85rem",opacity:got?1:0.45}}><i className={`ti ${ACH_ICONS[i]}`} style={{fontSize:20,color:got?T.am:T.mt,display:"block",marginBottom:6}} aria-hidden="true"/><div style={{fontSize:13,fontWeight:500,color:T.tx,marginBottom:3}}>{a.nm}</div><div style={{fontSize:11,color:T.mt}}>{a.desc}</div>{got&&<div style={{fontSize:10,color:T.gn,marginTop:5}}><i className="ti ti-check" style={{fontSize:10,marginRight:3}} aria-hidden="true"/>{L.achDone}</div>}</div>);})}</div></div>);}
-
-// ── LEADERBOARD ──────────────────────────────────────────────
-function LeaderBoard({playerName,T,L,onBack}){const[scores]=useState(()=>{try{return JSON.parse(localStorage.getItem("tdc_lb")||"[]");}catch{return[];}});return(<div><div style={{display:"flex",alignItems:"center",gap:12,marginBottom:"1.25rem"}}><button onClick={onBack} style={{background:"transparent",border:"none",color:T.mt,cursor:"pointer",fontSize:13,fontFamily:"Georgia,serif"}}><i className="ti ti-arrow-left" style={{fontSize:13,marginRight:6}} aria-hidden="true"/>{L.back}</button><p style={{fontSize:10,letterSpacing:3,color:T.am,textTransform:"uppercase",margin:0}}>{L.lbTitle}</p></div>{scores.length===0?<p style={{color:T.mt,fontFamily:"Georgia,serif",fontSize:13}}>{L.lbEmpty}</p>:<div style={{display:"flex",flexDirection:"column",gap:6}}>{scores.slice(0,10).map((s,i)=><div key={i} style={{display:"flex",alignItems:"center",gap:12,background:s.name===playerName?T.al:T.sf,border:`0.5px solid ${s.name===playerName?T.am:T.ab}`,borderRadius:8,padding:"0.75rem 1rem"}}><span style={{fontSize:16,fontWeight:500,color:T.am,minWidth:24}}>#{i+1}</span><div style={{flex:1}}><div style={{fontSize:13,color:T.tx}}>{s.name}</div><div style={{fontSize:11,color:T.mt}}>{s.mode} · {s.difficulty} · {new Date(s.date).toLocaleDateString()}</div></div><span style={{fontSize:15,fontWeight:500,color:T.am}}>{s.score}{L.pts}</span></div>)}</div>}</div>);}
-
-// ── PROFILE ──────────────────────────────────────────────────
-function ProfileScreen({name,score,maxScore,learned,unlocked,inventory,difficulty,mode,T,L,onBack}){
-  const pct=Math.round((score/maxScore)*100);
-  const ri=pct>=90?0:pct>=70?1:pct>=50?2:3;
-  const rank=L.ranks[ri];
-  const today=new Date().toLocaleDateString();
-  const dlCard=()=>{const t=`${L.cardTitle}\n${"─".repeat(40)}\n${L.cardName} ${name}\n${L.cardRank} ${rank}\n${L.cardScore} ${score}/${maxScore} (${pct}%)\n${L.cardMode} ${mode} · ${L.cardDiff} ${difficulty}\n${L.cardConcepts} ${learned.map(l=>l.nmEn||l.nm).join(", ")}\n${L.cardAch} ${unlocked.length}/${ACH_IDS.length}\n${L.cardDate} ${today}\n${"─".repeat(40)}`;const b=new Blob([t],{type:"text/plain"});const u=URL.createObjectURL(b);const a=document.createElement("a");a.href=u;a.download="developer-card.txt";a.click();};
-  return(<div><div style={{display:"flex",alignItems:"center",gap:12,marginBottom:"1.25rem"}}><button onClick={onBack} style={{background:"transparent",border:"none",color:T.mt,cursor:"pointer",fontSize:13,fontFamily:"Georgia,serif"}}><i className="ti ti-arrow-left" style={{fontSize:13,marginRight:6}} aria-hidden="true"/>{L.back}</button><p style={{fontSize:10,letterSpacing:3,color:T.am,textTransform:"uppercase",margin:0}}>{L.profileTitle}</p></div><div style={{background:T.sf,border:`0.5px solid ${T.am}`,borderRadius:12,padding:"1.5rem",marginBottom:"1rem"}}><div style={{display:"flex",alignItems:"center",gap:14,marginBottom:"1.25rem"}}><div style={{width:52,height:52,borderRadius:"50%",background:T.al,border:`0.5px solid ${T.am}`,display:"flex",alignItems:"center",justifyContent:"center"}}><i className="ti ti-user-circle" style={{fontSize:26,color:T.am}} aria-hidden="true"/></div><div><div style={{fontSize:"1.2rem",color:T.tx,fontFamily:"Georgia,serif"}}>{name||"Byte"}</div><div style={{fontSize:11,color:T.am,letterSpacing:2}}>{rank.toUpperCase()}</div></div></div><div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:"1.25rem"}}>{[[L.profileScore,`${score}/${maxScore}`],[L.profilePct,`${pct}%`],[L.profileAch,`${unlocked.length}/${ACH_IDS.length}`]].map(([l,v])=>(<div key={l} style={{background:T.bg,borderRadius:6,padding:"0.6rem",textAlign:"center"}}><div style={{fontSize:18,fontWeight:500,color:T.am}}>{v}</div><div style={{fontSize:10,color:T.mt}}>{l}</div></div>))}</div><div style={{marginBottom:"1rem"}}><p style={{fontSize:10,letterSpacing:2,color:T.mt,textTransform:"uppercase",marginBottom:6}}>{L.profileConcepts}</p><div style={{display:"flex",flexWrap:"wrap",gap:5}}>{learned.map((c,i)=>(<span key={i} style={{fontSize:11,background:T.al,border:`0.5px solid ${T.ab}`,color:T.am,padding:"2px 10px",borderRadius:4}}>{c.nmEn||c.nm}</span>))}</div></div><div style={{marginBottom:"1rem"}}><p style={{fontSize:10,letterSpacing:2,color:T.mt,textTransform:"uppercase",marginBottom:6}}>{L.profileInv} ({inventory.length})</p><div style={{display:"flex",flexWrap:"wrap",gap:5}}>{inventory.map((s,i)=>{const nm=L.lang==="en"?(s.item.nameEn||s.item.name):s.item.name;return(<span key={i} style={{fontSize:11,color:T.mt,display:"flex",alignItems:"center",gap:4}}><i className={`ti ${s.item.icon}`} style={{fontSize:12,color:T.am}} aria-hidden="true"/>{nm}</span>);})}</div></div><div style={{fontSize:10,color:T.mt,textAlign:"right"}}>{today} · {mode} · {difficulty}</div></div><NBtn onClick={dlCard} T={T}><i className="ti ti-download" style={{fontSize:12,marginRight:6}} aria-hidden="true"/>{L.profileDl}</NBtn></div>);}
-
-// ── CHEATSHEET ───────────────────────────────────────────────
-function dlCheatsheet(learned,L){
-  const lines=[L.cheatTitle,"=".repeat(50),""];
-  learned.forEach(c=>{const nm=L.lang==="en"?(c.nmEn||c.nm):c.nm;const sm=L.lang==="en"?(c.sumEn||c.sum):c.sum;lines.push(`▸ ${nm.toUpperCase()}`);lines.push(sm);lines.push("");lines.push("Python:");lines.push(c.py||"");lines.push("");lines.push("JavaScript:");lines.push(c.js||"");lines.push("-".repeat(50));lines.push("");});
-  const b=new Blob([lines.join("\n")],{type:"text/plain"});
-  const u=URL.createObjectURL(b);const a=document.createElement("a");a.href=u;a.download="cheatsheet.txt";a.click();
-}
-
-// ── SANDBOX ──────────────────────────────────────────────────
-function Sandbox({scene,language,T,L,onNext,onAchieve}){
-  const initCode=language==="js"?scene.concept.js:scene.concept.py;
-  const[code,setCode]=useState(initCode);
-  const[out,setOut]=useState("");
-  const[running,setRunning]=useState(false);
-  const[skulptReady,setSkulptReady]=useState(!!window.Sk);
-  const[lang,setLang]=useState(language==="js"?"js":"py");
-
-  useEffect(()=>{if(!window.Sk){const s1=document.createElement("script");s1.src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt.min.js";s1.onload=()=>{const s2=document.createElement("script");s2.src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt-stdlib.js";s2.onload=()=>setSkulptReady(true);document.head.appendChild(s2);};document.head.appendChild(s1);}else setSkulptReady(true);},[]);
-  useEffect(()=>{setCode(lang==="js"?scene.concept.js:scene.concept.py);},[lang]);
-
-  const runJS=()=>{let logs=[];const orig=console.log;console.log=(...a)=>{logs.push(a.map(x=>typeof x==="object"?JSON.stringify(x):String(x)).join(" "));orig(...a);};try{new Function(code)();setOut(logs.join("\n")||`(${L.sandboxNoOut} console.log?)`);}catch(e){setOut("Error: "+e.message);}finally{console.log=orig;}};
-  const runPY=()=>{if(!window.Sk){setOut(L.skulptLoading);return;}let o="";window.Sk.configure({output:t=>{o+=t;},read:f=>{if(window.Sk.builtinFiles?.files[f])return window.Sk.builtinFiles.files[f];throw f+" not found";}});window.Sk.misceval.asyncToPromise(()=>window.Sk.importMainWithBody("<stdin>",false,code,true)).then(()=>setOut(o||`(${L.sandboxNoOut} print?)`)).catch(e=>setOut("Error: "+e.toString())).finally(()=>setRunning(false));};
-
-  const run=()=>{setRunning(true);setOut("");onAchieve("sandbox_a");if(lang==="js"){runJS();setRunning(false);}else runPY();};
-
-  return(<div><p style={{fontSize:10,letterSpacing:3,color:T.am,textTransform:"uppercase",marginBottom:"0.75rem"}}><i className="ti ti-terminal-2" style={{fontSize:13,marginRight:6,verticalAlign:"-1px"}} aria-hidden="true"/>{L.sandboxTitle}</p>
-  <div style={{display:"flex",gap:6,marginBottom:8}}>{[["py","Python"],["js","JavaScript"]].map(([k,l])=>(<button key={k} onClick={()=>setLang(k)} style={{background:lang===k?T.al:"transparent",border:`0.5px solid ${lang===k?T.am:T.ab}`,color:lang===k?T.am:T.mt,padding:"3px 12px",borderRadius:4,cursor:"pointer",fontSize:11,fontFamily:"Georgia,serif"}}>{l}</button>))}{lang==="py"&&!skulptReady&&<span style={{fontSize:10,color:T.mt,alignSelf:"center",marginLeft:4}}>{L.skulptLoading}</span>}</div>
-  <textarea value={code} onChange={e=>setCode(e.target.value)} style={{width:"100%",background:T.cb,border:`0.5px solid ${T.ab}`,borderRadius:6,padding:"0.9rem 1.1rem",fontFamily:"Courier New,monospace",fontSize:"0.8rem",color:"#b8dfa0",lineHeight:1.78,resize:"vertical",minHeight:140,boxSizing:"border-box",outline:"none",marginBottom:8}}/>
-  <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:"0.75rem"}}><button onClick={run} disabled={running||(lang==="py"&&!skulptReady)} style={{background:T.al,border:`0.5px solid ${T.am}`,color:T.am,padding:"5px 14px",borderRadius:6,cursor:"pointer",fontSize:13,fontFamily:"Georgia,serif",display:"flex",alignItems:"center",gap:6}}><i className="ti ti-player-play" style={{fontSize:13}} aria-hidden="true"/>{running?L.sandboxRunning:L.sandboxRun}</button><span style={{fontSize:11,color:T.mt}}>{L.sandboxHint}</span></div>
-  {out&&<pre style={{background:T.cb,border:`0.5px solid ${T.ab}`,borderRadius:6,padding:"0.85rem 1.1rem",fontSize:"0.78rem",color:out.startsWith("Error")||out.startsWith("Erro")?T.cr:"#b8dfa0",fontFamily:"Courier New,monospace",lineHeight:1.7,whiteSpace:"pre-wrap",marginBottom:"1rem",maxHeight:160,overflowY:"auto"}}>{out}</pre>}
-  <NBtn onClick={onNext} T={T}>{L.sandboxNext}</NBtn></div>);}
-
-// ── INTRO ────────────────────────────────────────────────────
-function Intro({onStart,onDaily,onMulti,settings,setSettings}){
-  const L=UI[settings.lang||"pt"];const T=TH[settings.theme];
-  const dailyIdx=(()=>{const d=new Date().toDateString();let h=0;for(const c of d)h=(h*31+c.charCodeAt(0))%SCENES.length;return h;})();
-  const diffOpts=[[settings.lang==="en"?"beginner":"iniciante",L.diffInit],[settings.lang==="en"?"challenging":"desafiador",L.diffHard]];
-  return(<div style={{paddingTop:"2.5rem",paddingBottom:"1rem"}}>
-    <div style={{textAlign:"center",marginBottom:"2rem"}}>
-      <i className="ti ti-sword" style={{fontSize:44,color:T.am,display:"block",marginBottom:"1rem"}} aria-hidden="true"/>
-      <p style={{fontSize:10,letterSpacing:4,color:T.am,textTransform:"uppercase",marginBottom:"0.5rem"}}>{L.subtitle}</p>
-      <h1 style={{fontSize:"2.1rem",fontWeight:"normal",color:T.tx,marginBottom:"0.75rem",letterSpacing:"1.5px",fontFamily:"Georgia,serif"}}>{settings.lang==="en"?"Lands of Code":"Terras do Código"}</h1>
-      <p style={{fontSize:"0.88rem",color:T.mt,maxWidth:400,margin:"0 auto",lineHeight:1.85,fontFamily:"Georgia,serif"}}>{L.chapters}</p>
+function XPBar({xpData,lang,T,L}){
+  const{lvl,pct,xp,next}=xpData;
+  const title=lang==="en"?xpData.enTi:xpData.ptTi;
+  return(<div style={{marginBottom:"0.75rem"}}>
+    <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
+      <span style={{fontSize:11,color:T.am,fontFamily:"Georgia,serif"}}><i className="ti ti-trending-up" style={{fontSize:11,marginRight:4}} aria-hidden="true"/>{L.xpLevel} {lvl} — {title}</span>
+      <span style={{fontSize:10,color:T.mt}}>{xp} {L.xpLabel}{next?` / ${next.xp}`:""}</span>
     </div>
-
-    {/* Language toggle — prominent */}
-    <div style={{display:"flex",justifyContent:"center",gap:8,marginBottom:"1.5rem"}}>
-      {[["pt","🇧🇷 Português"],["en","🇺🇸 English"]].map(([v,l])=>(<button key={v} onClick={()=>setSettings(s=>({...s,lang:v}))} style={{background:settings.lang===v?T.al:"transparent",border:`0.5px solid ${settings.lang===v?T.am:T.ab}`,color:settings.lang===v?T.am:T.mt,padding:"6px 18px",borderRadius:20,cursor:"pointer",fontSize:13,fontFamily:"Georgia,serif",transition:"all 0.2s"}}>{l}</button>))}
+    <div style={{height:3,background:T.al,borderRadius:99,overflow:"hidden"}}>
+      <div style={{width:`${pct}%`,height:"100%",background:T.am,borderRadius:99,transition:"width 0.8s ease"}}/>
     </div>
-
-    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))",gap:12,marginBottom:"1.5rem"}}>
-      {[[L.settingTheme,"theme",[["dark","Grimório / Grimoire"],["light","Pergaminho / Parchment"],["cyber","Neon Futuro / Neon Future"]]],
-        [L.settingDiff,"difficulty",diffOpts],
-        [L.settingCode,"language",[["py",L.langPy],["js",L.langJs],["both",L.langBoth]]]].map(([label,key,opts])=>(
-        <div key={key} style={{background:T.sf,border:`0.5px solid ${T.ab}`,borderRadius:8,padding:"1rem"}}>
-          <p style={{fontSize:10,letterSpacing:2,color:T.am,textTransform:"uppercase",marginBottom:"0.65rem"}}>{label}</p>
-          <div style={{display:"flex",flexDirection:"column",gap:5}}>
-            {opts.map(([v,l])=>(<button key={v} onClick={()=>setSettings(s=>({...s,[key]:v}))} style={{background:settings[key]===v?T.al:"transparent",border:`0.5px solid ${settings[key]===v?T.am:T.ab}`,color:settings[key]===v?T.am:T.mt,padding:"5px 10px",borderRadius:4,cursor:"pointer",fontSize:12,fontFamily:"Georgia,serif",textAlign:"left"}}>{settings[key]===v&&<i className="ti ti-check" style={{fontSize:11,marginRight:6}} aria-hidden="true"/>}{l}</button>))}
-          </div>
-        </div>
-      ))}
-    </div>
-
-    <div style={{background:T.sf,border:`0.5px solid ${T.ab}`,borderRadius:8,padding:"1rem",marginBottom:"1.5rem"}}>
-      <p style={{fontSize:10,letterSpacing:2,color:T.am,textTransform:"uppercase",marginBottom:"0.65rem"}}>{L.settingPlayer}</p>
-      <input value={settings.p1} onChange={e=>setSettings(s=>({...s,p1:e.target.value}))} placeholder="Byte" style={{background:T.cb,border:`0.5px solid ${T.ab}`,color:T.tx,padding:"6px 10px",borderRadius:4,fontSize:13,fontFamily:"Georgia,serif",outline:"none",width:"100%",boxSizing:"border-box"}}/>
-    </div>
-
-    <div style={{display:"flex",flexWrap:"wrap",gap:10,justifyContent:"center"}}>
-      <NBtn onClick={onStart} T={T}>{L.playSolo}</NBtn>
-      <NBtn onClick={onMulti} T={T}><i className="ti ti-users" style={{fontSize:12,marginRight:6}} aria-hidden="true"/>{L.playMulti}</NBtn>
-      <NBtn onClick={()=>onDaily(dailyIdx)} T={T}><i className="ti ti-calendar" style={{fontSize:12,marginRight:6}} aria-hidden="true"/>{L.playDaily}</NBtn>
-    </div>
-    <p style={{fontSize:11,color:T.mt,textAlign:"center",marginTop:"0.75rem",fontFamily:"Georgia,serif"}}>{L.dailyToday} {settings.lang==="en"?(SCENES[dailyIdx].titleEn||SCENES[dailyIdx].title):SCENES[dailyIdx].title}</p>
   </div>);}
 
-// ── MULTI SETUP ──────────────────────────────────────────────
+function StreakBadge({streak,T,L}){
+  if(!streak||streak<2)return null;
+  return(<span style={{fontSize:10,background:"rgba(216,90,48,.12)",border:`0.5px solid rgba(216,90,48,.35)`,color:T.cr,padding:"2px 8px",borderRadius:4,display:"inline-flex",alignItems:"center",gap:4}}>
+    <i className="ti ti-flame" style={{fontSize:11}} aria-hidden="true"/>
+    {streak} {L.streakDays}
+  </span>);}
+
+// ── CODE ANIMATION ───────────────────────────────────────────
+function CodeAnim({sceneId,lang,T,L}){
+  const steps=ANIM_STEPS[sceneId];
+  const[step,setStep]=useState(0);
+  if(!steps)return(<p style={{fontSize:12,color:T.mt,fontFamily:"Georgia,serif",padding:"0.5rem 0"}}>{L.animNoAnim}</p>);
+  const s=steps[step];
+  return(<div>
+    <div style={{background:T.cb,border:`0.5px solid ${T.ab}`,borderRadius:6,padding:"0.9rem 1.1rem",marginBottom:8}}>
+      <pre style={{fontFamily:"Courier New,monospace",fontSize:"0.82rem",color:"#b8dfa0",margin:0,lineHeight:1.7}}>{s.code}</pre>
+    </div>
+    <div style={{display:"flex",gap:8,marginBottom:8}}>
+      <div style={{flex:1,background:T.sf,border:`0.5px solid ${T.ab}`,borderRadius:6,padding:"0.6rem 0.9rem"}}>
+        <div style={{fontSize:10,letterSpacing:2,color:T.am,textTransform:"uppercase",marginBottom:4}}>{L.animVars}</div>
+        {Object.entries(s.vars).map(([k,v])=>(
+          <div key={k} style={{fontSize:12,fontFamily:"Courier New,monospace",color:T.tx,marginBottom:2}}>
+            <span style={{color:T.am}}>{k}</span> = <span style={{color:T.gn}}>{JSON.stringify(v)}</span>
+          </div>
+        ))}
+        {!Object.keys(s.vars).length&&<span style={{fontSize:11,color:T.mt}}>—</span>}
+      </div>
+      {s.out&&<div style={{background:"rgba(93,202,165,.07)",border:`0.5px solid rgba(93,202,165,.3)`,borderRadius:6,padding:"0.6rem 0.9rem",minWidth:80}}>
+        <div style={{fontSize:10,letterSpacing:2,color:T.gn,textTransform:"uppercase",marginBottom:4}}>{L.animOut}</div>
+        <pre style={{fontFamily:"Courier New,monospace",fontSize:12,color:T.gn,margin:0}}>{s.out}</pre>
+      </div>}
+    </div>
+    <p style={{fontSize:12,color:T.am,marginBottom:8,fontFamily:"Georgia,serif"}}>{s.desc[lang]||s.desc.pt}</p>
+    <div style={{display:"flex",alignItems:"center",gap:8}}>
+      <button onClick={()=>setStep(s=>Math.max(0,s-1))} disabled={step===0} style={{background:"transparent",border:`0.5px solid ${T.ab}`,color:T.mt,padding:"3px 10px",borderRadius:4,cursor:step===0?"default":"pointer",fontSize:13}}>{L.animPrev}</button>
+      <span style={{fontSize:11,color:T.mt,fontFamily:"Georgia,serif"}}>{L.animStep} {step+1} {L.animOf} {steps.length}</span>
+      <div style={{flex:1,height:2,background:T.al,borderRadius:99}}><div style={{width:`${((step+1)/steps.length)*100}%`,height:"100%",background:T.am,borderRadius:99,transition:"width 0.3s"}}/></div>
+      <button onClick={()=>setStep(s=>Math.min(steps.length-1,s+1))} disabled={step===steps.length-1} style={{background:"transparent",border:`0.5px solid ${T.ab}`,color:T.mt,padding:"3px 10px",borderRadius:4,cursor:step===steps.length-1?"default":"pointer",fontSize:13}}>{L.animNext}</button>
+    </div>
+  </div>);}
+
+// ── BOSS CHALLENGE ───────────────────────────────────────────
+function BossChallenge({boss,lang,T,L,onDone,addXP}){
+  const[qIdx,setQIdx]=useState(0);const[sel,setSel]=useState(null);const[rev,setRev]=useState(false);
+  const[correct,setCorrect]=useState(0);const[timer,setTimer]=useState(30);const timerRef=useRef(null);
+  const q=boss.questions[qIdx];
+  const question=lang==="en"?(q.qEn||q.q):q.q;
+  const opts=lang==="en"?(q.optsEn||q.opts):q.opts;
+  const title=lang==="en"?(boss.enTitle||boss.ptTitle):boss.ptTitle;
+  const intro=lang==="en"?(boss.enIntro||boss.ptIntro):boss.ptIntro;
+
+  useEffect(()=>{
+    setTimer(30);setSel(null);setRev(false);
+    timerRef.current=setInterval(()=>setTimer(t=>{if(t<=1){clearInterval(timerRef.current);setRev(true);return 0;}return t-1;}),1000);
+    return()=>clearInterval(timerRef.current);
+  },[qIdx]);
+
+  const pick=(i)=>{clearInterval(timerRef.current);setSel(i);setRev(true);if(i===q.ok)setCorrect(c=>c+1);};
+  const next=()=>{if(qIdx<boss.questions.length-1){setQIdx(i=>i+1);}else{const pts=correct*15;addXP(boss.xpBonus);onDone(pts);}};
+
+  if(qIdx===0&&sel===null&&!rev)return(
+    <div style={{textAlign:"center",paddingTop:"1.5rem"}}>
+      <div style={{fontSize:40,marginBottom:"0.75rem"}}><i className={`ti ${boss.icon}`} style={{color:T.cr}} aria-hidden="true"/></div>
+      <p style={{fontSize:10,letterSpacing:3,color:T.cr,textTransform:"uppercase",marginBottom:"0.5rem"}}>{L.bossIntro}</p>
+      <h2 style={{fontSize:"1.3rem",fontWeight:"normal",color:T.tx,marginBottom:"1rem",fontFamily:"Georgia,serif"}}>{title}</h2>
+      <p style={{fontSize:"0.9rem",color:T.mt,marginBottom:"1.5rem",fontFamily:"Georgia,serif",lineHeight:1.7,maxWidth:380,margin:"0 auto 1.5rem"}}>{intro}</p>
+      <div style={{display:"flex",gap:10,justifyContent:"center",marginBottom:"1.5rem"}}>
+        {boss.questions.map((_,i)=><div key={i} style={{width:32,height:32,borderRadius:"50%",background:T.al,border:`0.5px solid ${T.ab}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,color:T.mt}}>Q{i+1}</div>)}
+      </div>
+      <div style={{display:"flex",gap:10,justifyContent:"center"}}>
+        <NBtn onClick={()=>setQIdx(0)} T={T}><i className="ti ti-sword" style={{fontSize:12,marginRight:6}} aria-hidden="true"/>{L.bossNext.replace("→","").trim()} →</NBtn>
+        <NBtn onClick={()=>onDone(0)} T={T}>Pular boss</NBtn>
+      </div>
+    </div>);
+
+  if(rev&&qIdx===boss.questions.length-1&&sel!==null)return(
+    <div style={{textAlign:"center",paddingTop:"1.5rem"}}>
+      <i className="ti ti-trophy" style={{fontSize:40,color:T.am,display:"block",marginBottom:"0.75rem"}} aria-hidden="true"/>
+      <p style={{fontSize:10,letterSpacing:3,color:T.am,textTransform:"uppercase",marginBottom:"0.5rem"}}>{L.bossWin}</p>
+      <p style={{fontSize:"1.1rem",color:T.tx,marginBottom:"0.5rem",fontFamily:"Georgia,serif"}}>{correct}/{boss.questions.length} corretas · {correct*15} pts</p>
+      <p style={{fontSize:12,color:T.gn,marginBottom:"1.5rem"}}>{L.bossBonusXP} +{boss.xpBonus} XP</p>
+      <NBtn onClick={next} T={T}>{L.bossNext}</NBtn>
+    </div>);
+
+  return(<div>
+    <div style={{display:"flex",justifyContent:"space-between",marginBottom:"1rem"}}>
+      <span style={{fontSize:10,letterSpacing:2,color:T.cr,textTransform:"uppercase"}}>{L.bossQ} {qIdx+1} {L.bossOf} {boss.questions.length}</span>
+      <span style={{fontSize:11,color:timer<10?T.cr:T.mt}}>{L.bossTime} {timer}s</span>
+    </div>
+    <div style={{height:3,background:T.al,borderRadius:99,marginBottom:"1rem",overflow:"hidden"}}><div style={{width:`${(timer/30)*100}%`,height:"100%",background:timer<10?T.cr:T.am,transition:"width 1s linear",borderRadius:99}}/></div>
+    <p style={{fontSize:"1rem",color:T.tx,marginBottom:"1.25rem",fontFamily:"Georgia,serif",lineHeight:1.7}}>{question}</p>
+    <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:"1rem"}}>
+      {opts.map((o,i)=>{let bd=T.ab,bg="transparent",tc=T.tx;if(rev){if(i===q.ok){bd="rgba(93,202,165,.5)";bg="rgba(93,202,165,.08)";tc=T.gn;}else if(i===sel){bd="rgba(216,90,48,.5)";bg="rgba(216,90,48,.08)";tc=T.cr;}}else if(i===sel){bd=T.am;bg=T.al;}return(<button key={i} onClick={()=>!rev&&pick(i)} style={{background:bg,border:`0.5px solid ${bd}`,color:tc,padding:"0.75rem 1rem",textAlign:"left",cursor:rev?"default":"pointer",borderRadius:8,fontSize:"0.9rem",fontFamily:"Georgia,serif",lineHeight:1.5}}>{o}</button>);})}
+    </div>
+    {rev&&<div>
+      <p style={{fontSize:13,color:sel===q.ok?T.gn:T.mt,marginBottom:"1rem",fontFamily:"Georgia,serif"}}>{sel===q.ok?`${L.bossCorrect}15 pts`:L.bossWrong}</p>
+      <NBtn onClick={next} T={T}>{qIdx<boss.questions.length-1?`${L.bossQ} ${qIdx+2} →`:L.bossWin+" →"}</NBtn>
+    </div>}
+  </div>);}
+
+// ── FIX THE BUG ──────────────────────────────────────────────
+function FixBug({scene,T,L,onNext,addScore,onAchieve}){
+  const bug=BUGS.find(b=>b.id===scene.id);
+  const[code,setCode]=useState(bug?.broken||"");
+  const[out,setOut]=useState("");const[pass,setPass]=useState(false);
+  const[running,setRunning]=useState(false);const[skulptReady,setSkulptReady]=useState(!!window.Sk);
+  const[tried,setTried]=useState(false);
+  const ptHint=bug?.ptHint||"";const enHint=bug?.enHint||"";
+  const hint=L.lang==="en"?enHint:ptHint;
+  const title=L.lang==="en"?(bug?.enTitle||bug?.ptTitle||"Fix the Bug"):bug?.ptTitle||"Corrija o Bug";
+  const expected=bug?.expected||"";
+
+  useEffect(()=>{if(!window.Sk){const s1=document.createElement("script");s1.src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt.min.js";s1.onload=()=>{const s2=document.createElement("script");s2.src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt-stdlib.js";s2.onload=()=>setSkulptReady(true);document.head.appendChild(s2);};document.head.appendChild(s1);}else setSkulptReady(true);},[]);
+
+  const runTest=()=>{
+    if(!bug)return;setRunning(true);setTried(true);let o="";
+    if(!window.Sk){setOut(L.skulptLoading);setRunning(false);return;}
+    window.Sk.configure({output:t=>{o+=t;},read:f=>{if(window.Sk.builtinFiles?.files[f])return window.Sk.builtinFiles.files[f];throw f;}});
+    window.Sk.misceval.asyncToPromise(()=>window.Sk.importMainWithBody("<stdin>",false,code,true))
+      .then(()=>{const trimOut=o.trim();const trimExp=(bug.expected||"").trim();const ok=trimOut===trimExp;setOut(trimOut);setPass(ok);if(ok){addScore(15);onAchieve("bug_fixer");}})
+      .catch(e=>setOut("Erro: "+e.toString()))
+      .finally(()=>setRunning(false));
+  };
+
+  if(!bug)return(<div><p style={{fontSize:13,color:T.mt,fontFamily:"Georgia,serif",marginBottom:"1rem"}}>Sem desafio de bug para este capítulo.</p><NBtn onClick={onNext} T={T}>{L.bugSkip}</NBtn></div>);
+
+  return(<div>
+    <p style={{fontSize:10,letterSpacing:3,color:T.cr,textTransform:"uppercase",marginBottom:"0.5rem"}}><i className="ti ti-bug" style={{fontSize:13,marginRight:6,verticalAlign:"-1px"}} aria-hidden="true"/>{L.bugTitle} — {title}</p>
+    <div style={{background:"rgba(216,90,48,.05)",border:`0.5px solid rgba(216,90,48,.2)`,borderRadius:6,padding:"0.6rem 0.9rem",marginBottom:"0.85rem",fontSize:12,color:T.cr,fontFamily:"Georgia,serif"}}><i className="ti ti-bulb" style={{fontSize:12,marginRight:5}} aria-hidden="true"/>{L.bugHint} {hint}</div>
+    <textarea value={code} onChange={e=>setCode(e.target.value)} style={{width:"100%",background:T.cb,border:`0.5px solid ${pass?"rgba(93,202,165,.5)":"rgba(216,90,48,.35)"}`,borderRadius:6,padding:"0.9rem 1.1rem",fontFamily:"Courier New,monospace",fontSize:"0.8rem",color:"#f4a0a0",lineHeight:1.78,resize:"vertical",minHeight:130,boxSizing:"border-box",outline:"none",marginBottom:8}}/>
+    <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:"0.75rem"}}>
+      <button onClick={runTest} disabled={running||!skulptReady} style={{background:"rgba(216,90,48,.1)",border:`0.5px solid rgba(216,90,48,.4)`,color:T.cr,padding:"5px 14px",borderRadius:6,cursor:"pointer",fontSize:13,fontFamily:"Georgia,serif",display:"flex",alignItems:"center",gap:6}}><i className="ti ti-player-play" style={{fontSize:13}} aria-hidden="true"/>{running?L.bugRunning:L.bugRun}</button>
+      {!skulptReady&&<span style={{fontSize:10,color:T.mt}}>{L.skulptLoading}</span>}
+    </div>
+    {tried&&<div style={{marginBottom:"1rem"}}>
+      <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+        <div style={{flex:1,minWidth:120,background:T.sf,border:`0.5px solid ${T.ab}`,borderRadius:6,padding:"0.6rem 0.9rem"}}>
+          <div style={{fontSize:10,color:T.mt,marginBottom:3}}>{L.bugExpected}</div>
+          <pre style={{fontFamily:"Courier New,monospace",fontSize:11,color:T.gn,margin:0}}>{expected}</pre>
+        </div>
+        <div style={{flex:1,minWidth:120,background:T.sf,border:`0.5px solid ${pass?"rgba(93,202,165,.4)":"rgba(216,90,48,.3)"}`,borderRadius:6,padding:"0.6rem 0.9rem"}}>
+          <div style={{fontSize:10,color:T.mt,marginBottom:3}}>{L.bugGot}</div>
+          <pre style={{fontFamily:"Courier New,monospace",fontSize:11,color:pass?T.gn:T.cr,margin:0}}>{out||"—"}</pre>
+        </div>
+      </div>
+      {pass&&<p style={{fontSize:13,color:T.gn,marginTop:8,fontFamily:"Georgia,serif"}}>{L.bugPass}</p>}
+      {!pass&&out&&<p style={{fontSize:13,color:T.mt,marginTop:8,fontFamily:"Georgia,serif"}}>{L.bugFail}</p>}
+    </div>}
+    <div style={{display:"flex",gap:8}}>
+      {pass&&<NBtn onClick={onNext} T={T}>{L.quizNextCh}</NBtn>}
+      <button onClick={onNext} style={{background:"transparent",border:"none",color:T.mt,cursor:"pointer",fontSize:12,fontFamily:"Georgia,serif"}}>{L.bugSkip}</button>
+    </div>
+  </div>);}
+
+// ── REVIEW ERRORS ────────────────────────────────────────────
+function ReviewErrors({errors,lang,T,L,onClose}){
+  return(<div>
+    <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:"1.25rem"}}>
+      <button onClick={onClose} style={{background:"transparent",border:"none",color:T.mt,cursor:"pointer",fontSize:13,fontFamily:"Georgia,serif"}}><i className="ti ti-arrow-left" style={{fontSize:13,marginRight:6}} aria-hidden="true"/>{L.back}</button>
+      <p style={{fontSize:10,letterSpacing:3,color:T.am,textTransform:"uppercase",margin:0}}>{L.reviewTitle}</p>
+    </div>
+    {!errors.length?<p style={{fontSize:13,color:T.gn,fontFamily:"Georgia,serif"}}>{L.reviewEmpty}</p>:
+    <div style={{display:"flex",flexDirection:"column",gap:10}}>
+      {errors.map((e,i)=>{
+        const q=lang==="en"?(e.quiz.qEn||e.quiz.q):e.quiz.q;
+        const opts=lang==="en"?(e.quiz.optsEn||e.quiz.opts):e.quiz.opts;
+        const correct=opts[e.quiz.ok];
+        const chosen=opts[e.chosen];
+        const title=lang==="en"?(e.titleEn||e.title||""):e.title||"";
+        return(<div key={i} style={{background:T.sf,border:`0.5px solid ${T.ab}`,borderRadius:8,padding:"1rem"}}>
+          <div style={{fontSize:10,letterSpacing:2,color:T.cr,textTransform:"uppercase",marginBottom:4}}>{title}</div>
+          <p style={{fontSize:13,color:T.tx,marginBottom:6,fontFamily:"Georgia,serif"}}><strong>{L.reviewQ}</strong> {q}</p>
+          <div style={{display:"flex",flexDirection:"column",gap:4}}>
+            <span style={{fontSize:12,background:"rgba(216,90,48,.08)",border:"0.5px solid rgba(216,90,48,.3)",color:T.cr,padding:"4px 10px",borderRadius:4}}><i className="ti ti-x" style={{fontSize:11,marginRight:5}} aria-hidden="true"/>Você: {chosen}</span>
+            <span style={{fontSize:12,background:"rgba(93,202,165,.08)",border:"0.5px solid rgba(93,202,165,.3)",color:T.gn,padding:"4px 10px",borderRadius:4}}><i className="ti ti-check" style={{fontSize:11,marginRight:5}} aria-hidden="true"/>{L.reviewCorrect} {correct}</span>
+          </div>
+        </div>);
+      })}
+    </div>}
+  </div>);}
+
+// ── AI AVATAR ─────────────────────────────────────────────────
+function AIAvatar({name,rank,T,L}){
+  const[avatar,setAvatar]=useState(()=>{try{return localStorage.getItem(`tdc_avatar_${name}`)||"";}catch{return "";}});
+  const[loading,setLoading]=useState(false);
+  const generate=async()=>{
+    setLoading(true);
+    try{
+      const res=await fetch("https://api.anthropic.com/v1/messages",{
+        method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({
+          model:"claude-sonnet-4-20250514",max_tokens:300,
+          messages:[{role:"user",content:`Create a unique 8-line ASCII art avatar (max 20 chars wide) for a programmer named "${name}" who achieved rank "${rank}". Use only printable ASCII + unicode box-drawing/geometric characters. Make it creative and programmer-themed. Return ONLY the ASCII art, no explanation, no backticks.`}]
+        })
+      });
+      const data=await res.json();
+      const art=data.content?.find(b=>b.type==="text")?.text||"";
+      setAvatar(art);
+      try{localStorage.setItem(`tdc_avatar_${name}`,art);}catch{}
+    }catch(e){setAvatar("Erro ao gerar — tente novamente");}
+    setLoading(false);
+  };
+  return(<div style={{marginBottom:"1rem"}}>
+    {avatar?<pre style={{fontFamily:"Courier New,monospace",fontSize:"0.78rem",color:T.am,background:T.cb,border:`0.5px solid ${T.ab}`,borderRadius:6,padding:"0.85rem",lineHeight:1.6,marginBottom:8,overflowX:"auto"}}>{avatar}</pre>:null}
+    <button onClick={generate} disabled={loading} style={{background:"transparent",border:`0.5px solid ${T.ab}`,color:loading?T.mt:T.am,padding:"4px 12px",borderRadius:6,cursor:loading?"default":"pointer",fontSize:12,fontFamily:"Georgia,serif"}}>
+      <i className="ti ti-sparkles" style={{fontSize:12,marginRight:5}} aria-hidden="true"/>
+      {loading?L.profileAvatarLoading:L.profileAvatar}
+    </button>
+  </div>);}
+
+// ── SHARE CARD ────────────────────────────────────────────────
+function shareCard({name,rank,score,maxScore,pct,concepts,lang,T}){
+  const canvas=document.createElement("canvas");
+  canvas.width=600;canvas.height=320;
+  const ctx=canvas.getContext("2d");
+  const bg=T.bg;const am=T.am;const tx=T.tx;const sf=T.sf;const mt=T.mt;const gn=T.gn;
+  ctx.fillStyle=bg;ctx.fillRect(0,0,600,320);
+  ctx.fillStyle=am+"22";ctx.fillRect(0,0,600,4);
+  ctx.fillStyle=am;ctx.fillRect(0,0,600,4);
+  ctx.fillStyle=sf;ctx.beginPath();ctx.roundRect(30,20,540,280,12);ctx.fill();
+  ctx.strokeStyle=am+"40";ctx.lineWidth=1;ctx.stroke();
+  ctx.fillStyle=am;ctx.font="bold 11px monospace";ctx.fillText(lang==="en"?"LANDS OF CODE":"TERRAS DO CÓDIGO",50,52);
+  ctx.fillStyle=tx;ctx.font="bold 26px Georgia";ctx.fillText(name||"Byte",50,88);
+  ctx.fillStyle=am;ctx.font="13px Georgia";ctx.fillText(rank,50,112);
+  ctx.fillStyle=am+"30";ctx.fillRect(50,130,500,2);
+  ctx.fillStyle=tx;ctx.font="13px sans-serif";
+  ctx.fillText(`${lang==="en"?"Score":"Pontuação"}: ${score}/${maxScore} (${pct}%)`,50,158);
+  ctx.fillStyle=gn;ctx.font="12px monospace";
+  const conceptLine=(concepts||[]).slice(0,6).join(" · ");
+  ctx.fillText(conceptLine,50,182);
+  const barW=500;const barH=8;const barY=200;
+  ctx.fillStyle=am+"25";ctx.beginPath();ctx.roundRect(50,barY,barW,barH,4);ctx.fill();
+  ctx.fillStyle=pct>=70?gn:am;ctx.beginPath();ctx.roundRect(50,barY,barW*(pct/100),barH,4);ctx.fill();
+  ctx.fillStyle=mt;ctx.font="11px monospace";
+  ctx.fillText(new Date().toLocaleDateString(),50,234);
+  ctx.fillStyle=am;ctx.font="bold 11px monospace";ctx.textAlign="right";
+  ctx.fillText("terrasDocodigo.dev",550,234);
+  const url=canvas.toDataURL("image/png");
+  const a=document.createElement("a");a.href=url;a.download="developer-card.png";a.click();
+}
+
+// ── MAP / ACH / LB / PROFILE ──────────────────────────────────
+function MapScreen({scenes,inventory,onJump,onBack,T,L}){return(<div><div style={{display:"flex",alignItems:"center",gap:12,marginBottom:"1.25rem"}}><button onClick={onBack} style={{background:"transparent",border:"none",color:T.mt,cursor:"pointer",fontSize:13,fontFamily:"Georgia,serif"}}><i className="ti ti-arrow-left" style={{fontSize:13,marginRight:6}} aria-hidden="true"/>{L.back}</button><p style={{fontSize:10,letterSpacing:3,color:T.am,textTransform:"uppercase",margin:0}}>{L.mapTitle}</p></div><div style={{background:T.sf,border:`0.5px solid ${T.ab}`,borderRadius:8,padding:"1rem"}}><svg viewBox="0 0 100 100" style={{width:"100%",height:"auto",display:"block"}}><rect width="100" height="100" fill={T.bg} rx="4"/><text x="50" y="8" textAnchor="middle" fontSize="3.5" fill={T.am} fontFamily="Georgia,serif">{L.mapKingdom}</text>{scenes.map((sc,i)=>{if(!i)return null;const p=scenes[i-1];return<line key={i} x1={p.mapPos.x} y1={p.mapPos.y} x2={sc.mapPos.x} y2={sc.mapPos.y} stroke={T.ab} strokeWidth="0.5"/>})}{scenes.map((sc,i)=>{const done=inventory.find(s=>s.id===sc.id);const cl=done?T.gn:T.mt;return(<g key={sc.id} onClick={()=>onJump(i)} style={{cursor:"pointer"}}><circle cx={sc.mapPos.x} cy={sc.mapPos.y} r="3.5" fill={done?T.gn:T.sf} stroke={done?T.gn:T.ab} strokeWidth="0.5"/><text x={sc.mapPos.x} y={sc.mapPos.y-5} textAnchor="middle" fontSize="2.2" fill={cl} fontFamily="Georgia,serif">{sc.ch}</text>{done&&<text x={sc.mapPos.x} y={sc.mapPos.y+0.8} textAnchor="middle" fontSize="2.5" fill={T.bg}>✓</text>}</g>);})}</svg><p style={{fontSize:11,color:T.mt,textAlign:"center",marginTop:"0.5rem",fontFamily:"Georgia,serif"}}>{L.mapHint}</p></div></div>);}
+
+function AchScreen({unlocked,T,L,onBack}){return(<div><div style={{display:"flex",alignItems:"center",gap:12,marginBottom:"1.25rem"}}><button onClick={onBack} style={{background:"transparent",border:"none",color:T.mt,cursor:"pointer",fontSize:13,fontFamily:"Georgia,serif"}}><i className="ti ti-arrow-left" style={{fontSize:13,marginRight:6}} aria-hidden="true"/>{L.back}</button><p style={{fontSize:10,letterSpacing:3,color:T.am,textTransform:"uppercase",margin:0}}>{L.achTitle}</p></div><div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:8}}>{ACH_IDS.map((id,i)=>{const got=unlocked.includes(id);const a=L.ach[i]||{nm:id,desc:""};return(<div key={id} style={{background:got?T.al:T.sf,border:`0.5px solid ${got?T.am:T.ab}`,borderRadius:8,padding:"0.85rem",opacity:got?1:0.45}}><i className={`ti ${ACH_ICONS[i]}`} style={{fontSize:20,color:got?T.am:T.mt,display:"block",marginBottom:6}} aria-hidden="true"/><div style={{fontSize:13,fontWeight:500,color:T.tx,marginBottom:3}}>{a.nm}</div><div style={{fontSize:11,color:T.mt}}>{a.desc}</div>{got&&<div style={{fontSize:10,color:T.gn,marginTop:5}}><i className="ti ti-check" style={{fontSize:10,marginRight:3}} aria-hidden="true"/>{L.achDone}</div>}</div>);})}</div></div>);}
+
+function LeaderBoard({playerName,T,L,onBack}){const[sc]=useState(()=>{try{return JSON.parse(localStorage.getItem("tdc_lb")||"[]");}catch{return[];}});return(<div><div style={{display:"flex",alignItems:"center",gap:12,marginBottom:"1.25rem"}}><button onClick={onBack} style={{background:"transparent",border:"none",color:T.mt,cursor:"pointer",fontSize:13,fontFamily:"Georgia,serif"}}><i className="ti ti-arrow-left" style={{fontSize:13,marginRight:6}} aria-hidden="true"/>{L.back}</button><p style={{fontSize:10,letterSpacing:3,color:T.am,textTransform:"uppercase",margin:0}}>{L.lbTitle}</p></div>{!sc.length?<p style={{color:T.mt,fontFamily:"Georgia,serif",fontSize:13}}>{L.lbEmpty}</p>:<div style={{display:"flex",flexDirection:"column",gap:6}}>{sc.slice(0,10).map((s,i)=><div key={i} style={{display:"flex",alignItems:"center",gap:12,background:s.name===playerName?T.al:T.sf,border:`0.5px solid ${s.name===playerName?T.am:T.ab}`,borderRadius:8,padding:"0.75rem 1rem"}}><span style={{fontSize:16,fontWeight:500,color:T.am,minWidth:24}}>#{i+1}</span><div style={{flex:1}}><div style={{fontSize:13,color:T.tx}}>{s.name}</div><div style={{fontSize:11,color:T.mt}}>{s.mode} · {new Date(s.date).toLocaleDateString()}</div></div><span style={{fontSize:15,fontWeight:500,color:T.am}}>{s.score}{L.pts}</span></div>)}</div>}</div>);}
+
+function ProfileScreen({name,score,maxScore,learned,unlocked,inventory,difficulty,mode,xpData,streak,T,L,lang,onBack}){
+  const pct=Math.round((score/maxScore)*100);const ri=pct>=90?0:pct>=70?1:pct>=50?2:3;
+  const rank=L.ranks[ri];const today=new Date().toLocaleDateString();
+  const xpTitle=lang==="en"?xpData.enTi:xpData.ptTi;
+  const concepts=learned.map(c=>lang==="en"?(c.nmEn||c.nm):c.nm);
+  const dlCard=()=>{const t=`${L.cardTitle}\n${"─".repeat(40)}\n${L.cardName} ${name}\n${L.cardRank} ${rank}\n${L.cardScore} ${score}/${maxScore} (${pct}%)\n${L.cardConcepts} ${concepts.join(", ")}\n${L.cardAch} ${unlocked.length}/${ACH_IDS.length}\n${L.xpLevel} ${xpData.lvl} — ${xpTitle} (${xpData.xp} XP)\n${L.streakLabel}: ${streak} ${L.streakDays}\n${L.cardDate} ${today}`;const b=new Blob([t],{type:"text/plain"});const u=URL.createObjectURL(b);const a=document.createElement("a");a.href=u;a.download="developer-card.txt";a.click();};
+  return(<div>
+    <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:"1.25rem"}}><button onClick={onBack} style={{background:"transparent",border:"none",color:T.mt,cursor:"pointer",fontSize:13,fontFamily:"Georgia,serif"}}><i className="ti ti-arrow-left" style={{fontSize:13,marginRight:6}} aria-hidden="true"/>{L.back}</button><p style={{fontSize:10,letterSpacing:3,color:T.am,textTransform:"uppercase",margin:0}}>{L.profileTitle}</p></div>
+    <div style={{background:T.sf,border:`0.5px solid ${T.am}`,borderRadius:12,padding:"1.5rem",marginBottom:"1rem"}}>
+      <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:"1.25rem"}}>
+        <div style={{width:52,height:52,borderRadius:"50%",background:T.al,border:`0.5px solid ${T.am}`,display:"flex",alignItems:"center",justifyContent:"center"}}><i className="ti ti-user-circle" style={{fontSize:26,color:T.am}} aria-hidden="true"/></div>
+        <div><div style={{fontSize:"1.2rem",color:T.tx,fontFamily:"Georgia,serif"}}>{name||"Byte"}</div><div style={{fontSize:11,color:T.am,letterSpacing:2}}>{rank.toUpperCase()}</div><div style={{fontSize:11,color:T.mt}}>{L.xpLevel} {xpData.lvl} · {xpData.xp} XP · {streak} {L.streakDays} <i className="ti ti-flame" style={{fontSize:11,color:T.cr}} aria-hidden="true"/></div></div>
+      </div>
+      <XPBar xpData={xpData} lang={lang} T={T} L={L}/>
+      <AIAvatar name={name} rank={rank} T={T} L={L}/>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:"1.25rem"}}>{[[L.profileScore,`${score}/${maxScore}`],[L.profilePct,`${pct}%`],[L.profileAch,`${unlocked.length}/${ACH_IDS.length}`]].map(([l,v])=>(<div key={l} style={{background:T.bg,borderRadius:6,padding:"0.6rem",textAlign:"center"}}><div style={{fontSize:18,fontWeight:500,color:T.am}}>{v}</div><div style={{fontSize:10,color:T.mt}}>{l}</div></div>))}</div>
+      <div style={{marginBottom:"1rem"}}><p style={{fontSize:10,letterSpacing:2,color:T.mt,textTransform:"uppercase",marginBottom:6}}>{L.profileConcepts}</p><div style={{display:"flex",flexWrap:"wrap",gap:5}}>{concepts.map((c,i)=>(<span key={i} style={{fontSize:11,background:T.al,border:`0.5px solid ${T.ab}`,color:T.am,padding:"2px 10px",borderRadius:4}}>{c}</span>))}</div></div>
+      <div style={{fontSize:10,color:T.mt,textAlign:"right"}}>{today} · {mode} · {difficulty}</div>
+    </div>
+    <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
+      <NBtn onClick={dlCard} T={T}><i className="ti ti-download" style={{fontSize:12,marginRight:5}} aria-hidden="true"/>{L.profileDl}</NBtn>
+      <NBtn onClick={()=>shareCard({name,rank,score,maxScore,pct,concepts,lang,T})} T={T}><i className="ti ti-share" style={{fontSize:12,marginRight:5}} aria-hidden="true"/>{L.profileShare}</NBtn>
+    </div>
+  </div>);}
+
+function dlCheatsheet(learned,L){const lines=[L.cheatTitle,"=".repeat(50),""];learned.forEach(c=>{const nm=L.lang==="en"?(c.nmEn||c.nm):c.nm;const sm=L.lang==="en"?(c.sumEn||c.sum):c.sum;lines.push(`▸ ${nm.toUpperCase()}`);lines.push(sm);lines.push("");lines.push("Python:");lines.push(c.py||"");lines.push("");lines.push("JavaScript:");lines.push(c.js||"");lines.push("-".repeat(50));lines.push("");});const b=new Blob([lines.join("\n")],{type:"text/plain"});const u=URL.createObjectURL(b);const a=document.createElement("a");a.href=u;a.download="cheatsheet.txt";a.click();}
+
+// ── SANDBOX ───────────────────────────────────────────────────
+function Sandbox({scene,language,T,L,onNext,onAchieve}){
+  const[code,setCode]=useState(language==="js"?scene.concept.js:scene.concept.py);
+  const[out,setOut]=useState("");const[running,setRunning]=useState(false);
+  const[skulptReady,setSkulptReady]=useState(!!window.Sk);const[lang,setLang]=useState(language==="js"?"js":"py");
+  useEffect(()=>{if(!window.Sk){const s1=document.createElement("script");s1.src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt.min.js";s1.onload=()=>{const s2=document.createElement("script");s2.src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt-stdlib.js";s2.onload=()=>setSkulptReady(true);document.head.appendChild(s2);};document.head.appendChild(s1);}else setSkulptReady(true);},[]);
+  useEffect(()=>{setCode(lang==="js"?scene.concept.js:scene.concept.py);},[lang]);
+  const runJS=()=>{let logs=[];const orig=console.log;console.log=(...a)=>{logs.push(a.map(x=>typeof x==="object"?JSON.stringify(x):String(x)).join(" "));orig(...a);};try{new Function(code)();setOut(logs.join("\n")||`(${L.sandboxNoOut} console.log?)`);}catch(e){setOut("Error: "+e.message);}finally{console.log=orig;}};
+  const runPY=()=>{if(!window.Sk){setOut(L.skulptLoading);return;}let o="";window.Sk.configure({output:t=>{o+=t;},read:f=>{if(window.Sk.builtinFiles?.files[f])return window.Sk.builtinFiles.files[f];throw f;}});window.Sk.misceval.asyncToPromise(()=>window.Sk.importMainWithBody("<stdin>",false,code,true)).then(()=>setOut(o||`(${L.sandboxNoOut} print?)`)).catch(e=>setOut("Error: "+e.toString())).finally(()=>setRunning(false));};
+  const run=()=>{setRunning(true);setOut("");onAchieve("sandbox_a");if(lang==="js"){runJS();setRunning(false);}else runPY();};
+  return(<div>
+    <p style={{fontSize:10,letterSpacing:3,color:T.am,textTransform:"uppercase",marginBottom:"0.75rem"}}><i className="ti ti-terminal-2" style={{fontSize:13,marginRight:6,verticalAlign:"-1px"}} aria-hidden="true"/>{L.sandboxTitle}</p>
+    <div style={{display:"flex",gap:6,marginBottom:8}}>{[["py","Python"],["js","JavaScript"]].map(([k,l])=>(<button key={k} onClick={()=>setLang(k)} style={{background:lang===k?T.al:"transparent",border:`0.5px solid ${lang===k?T.am:T.ab}`,color:lang===k?T.am:T.mt,padding:"3px 12px",borderRadius:4,cursor:"pointer",fontSize:11,fontFamily:"Georgia,serif"}}>{l}</button>))}</div>
+    <textarea value={code} onChange={e=>setCode(e.target.value)} style={{width:"100%",background:T.cb,border:`0.5px solid ${T.ab}`,borderRadius:6,padding:"0.9rem 1.1rem",fontFamily:"Courier New,monospace",fontSize:"0.8rem",color:"#b8dfa0",lineHeight:1.78,resize:"vertical",minHeight:130,boxSizing:"border-box",outline:"none",marginBottom:8}}/>
+    <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:"0.75rem"}}><button onClick={run} disabled={running||(lang==="py"&&!skulptReady)} style={{background:T.al,border:`0.5px solid ${T.am}`,color:T.am,padding:"5px 14px",borderRadius:6,cursor:"pointer",fontSize:13,fontFamily:"Georgia,serif",display:"flex",alignItems:"center",gap:6}}><i className="ti ti-player-play" style={{fontSize:13}} aria-hidden="true"/>{running?L.sandboxRunning:L.sandboxRun}</button><span style={{fontSize:11,color:T.mt}}>{L.sandboxHint}</span></div>
+    {out&&<pre style={{background:T.cb,border:`0.5px solid ${T.ab}`,borderRadius:6,padding:"0.85rem 1.1rem",fontSize:"0.78rem",color:out.startsWith("Error")||out.startsWith("Erro")?T.cr:"#b8dfa0",fontFamily:"Courier New,monospace",lineHeight:1.7,whiteSpace:"pre-wrap",marginBottom:"1rem",maxHeight:160,overflowY:"auto"}}>{out}</pre>}
+    <NBtn onClick={onNext} T={T}>{L.sandboxNext}</NBtn>
+  </div>);}
+
+// ── GAMEPLAY SCREENS ──────────────────────────────────────────
+function Intro({onStart,onDaily,onMulti,settings,setSettings,streak,xpData}){
+  const L=UI[settings.lang||"pt"];const T=TH[settings.theme];
+  const lang=settings.lang||"pt";
+  const dailyIdx=(()=>{const d=new Date().toDateString();let h=0;for(const c of d)h=(h*31+c.charCodeAt(0))%SCENES.length;return h;})();
+  const diffOpts=lang==="en"?[["beginner",L.diffInit],["challenging",L.diffHard]]:[["iniciante",L.diffInit],["desafiador",L.diffHard]];
+  const xpTitle=lang==="en"?xpData.enTi:xpData.ptTi;
+  return(<div style={{paddingTop:"2rem",paddingBottom:"1rem"}}>
+    <div style={{textAlign:"center",marginBottom:"1.75rem"}}>
+      <i className="ti ti-sword" style={{fontSize:40,color:T.am,display:"block",marginBottom:"0.75rem"}} aria-hidden="true"/>
+      <p style={{fontSize:10,letterSpacing:4,color:T.am,textTransform:"uppercase",marginBottom:"0.4rem"}}>{L.subtitle}</p>
+      <h1 style={{fontSize:"2rem",fontWeight:"normal",color:T.tx,marginBottom:"0.5rem",letterSpacing:"1.5px",fontFamily:"Georgia,serif"}}>{lang==="en"?"Lands of Code":"Terras do Código"}</h1>
+      <p style={{fontSize:"0.85rem",color:T.mt,maxWidth:400,margin:"0 auto 0.5rem",lineHeight:1.85,fontFamily:"Georgia,serif"}}>{L.chapters}</p>
+      <div style={{display:"flex",justifyContent:"center",gap:8,flexWrap:"wrap"}}>
+        <span style={{fontSize:11,color:T.am,background:T.al,border:`0.5px solid ${T.ab}`,padding:"2px 10px",borderRadius:4}}>{L.xpLevel} {xpData.lvl} — {xpTitle}</span>
+        <StreakBadge streak={streak} T={T} L={L}/>
+      </div>
+    </div>
+    <div style={{display:"flex",justifyContent:"center",gap:8,marginBottom:"1.25rem"}}>
+      {[["pt","🇧🇷 Português"],["en","🇺🇸 English"]].map(([v,l])=>(<button key={v} onClick={()=>setSettings(s=>({...s,lang:v}))} style={{background:settings.lang===v?T.al:"transparent",border:`0.5px solid ${settings.lang===v?T.am:T.ab}`,color:settings.lang===v?T.am:T.mt,padding:"5px 16px",borderRadius:20,cursor:"pointer",fontSize:13,fontFamily:"Georgia,serif"}}>{l}</button>))}
+    </div>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(190px,1fr))",gap:10,marginBottom:"1.25rem"}}>
+      {[[L.settingTheme,"theme",[["dark","Grimório"],["light","Pergaminho"],["cyber","Neon"]]],
+        [L.settingDiff,"difficulty",diffOpts],
+        [L.settingCode,"language",[["py",L.langPy],["js",L.langJs],["both",L.langBoth]]]].map(([label,key,opts])=>(
+        <div key={key} style={{background:T.sf,border:`0.5px solid ${T.ab}`,borderRadius:8,padding:"0.9rem"}}>
+          <p style={{fontSize:10,letterSpacing:2,color:T.am,textTransform:"uppercase",marginBottom:"0.55rem"}}>{label}</p>
+          <div style={{display:"flex",flexDirection:"column",gap:4}}>
+            {opts.map(([v,l])=>(<button key={v} onClick={()=>setSettings(s=>({...s,[key]:v}))} style={{background:settings[key]===v?T.al:"transparent",border:`0.5px solid ${settings[key]===v?T.am:T.ab}`,color:settings[key]===v?T.am:T.mt,padding:"4px 9px",borderRadius:4,cursor:"pointer",fontSize:11,fontFamily:"Georgia,serif",textAlign:"left"}}>{settings[key]===v&&"✓ "}{l}</button>))}
+          </div>
+        </div>))}
+    </div>
+    <div style={{background:T.sf,border:`0.5px solid ${T.ab}`,borderRadius:8,padding:"0.9rem",marginBottom:"0.85rem"}}>
+      <p style={{fontSize:10,letterSpacing:2,color:T.am,textTransform:"uppercase",marginBottom:"0.55rem"}}>{L.settingPlayer}</p>
+      <input value={settings.p1} onChange={e=>setSettings(s=>({...s,p1:e.target.value}))} placeholder="Byte" style={{background:T.cb,border:`0.5px solid ${T.ab}`,color:T.tx,padding:"5px 9px",borderRadius:4,fontSize:13,fontFamily:"Georgia,serif",outline:"none",width:"100%",boxSizing:"border-box",marginBottom:8}}/>
+      <p style={{fontSize:10,letterSpacing:2,color:T.am,textTransform:"uppercase",marginBottom:"0.4rem"}}>{L.settingFont}</p>
+      <div style={{display:"flex",alignItems:"center",gap:10}}>
+        <span style={{fontSize:11,color:T.mt}}>A</span>
+        <input type="range" min="85" max="130" value={Math.round((settings.fontSize||1)*100)} onChange={e=>setSettings(s=>({...s,fontSize:parseInt(e.target.value)/100}))} style={{flex:1}}/>
+        <span style={{fontSize:13,color:T.mt}}>A</span>
+        <span style={{fontSize:11,color:T.am,minWidth:32}}>{Math.round((settings.fontSize||1)*100)}%</span>
+      </div>
+    </div>
+    <div style={{display:"flex",flexWrap:"wrap",gap:8,justifyContent:"center"}}>
+      <NBtn onClick={onStart} T={T}>{L.playSolo}</NBtn>
+      <NBtn onClick={onMulti} T={T}><i className="ti ti-users" style={{fontSize:12,marginRight:5}} aria-hidden="true"/>{L.playMulti}</NBtn>
+      <NBtn onClick={()=>onDaily(dailyIdx)} T={T}><i className="ti ti-calendar" style={{fontSize:12,marginRight:5}} aria-hidden="true"/>{L.playDaily}</NBtn>
+    </div>
+    <p style={{fontSize:11,color:T.mt,textAlign:"center",marginTop:"0.65rem",fontFamily:"Georgia,serif"}}>{L.dailyToday} {lang==="en"?(SCENES[dailyIdx].titleEn||SCENES[dailyIdx].title||""):SCENES[dailyIdx].title||""}</p>
+  </div>);}
+
 function MultiSetup({T,L,settings,setSettings,onStart,onBack}){return(<div><div style={{display:"flex",alignItems:"center",gap:12,marginBottom:"1.25rem"}}><button onClick={onBack} style={{background:"transparent",border:"none",color:T.mt,cursor:"pointer",fontSize:13,fontFamily:"Georgia,serif"}}><i className="ti ti-arrow-left" style={{fontSize:13,marginRight:6}} aria-hidden="true"/>{L.back}</button><p style={{fontSize:10,letterSpacing:3,color:T.am,textTransform:"uppercase",margin:0}}>{L.multiTitle}</p></div><p style={{fontSize:"0.9rem",color:T.tx,marginBottom:"1.5rem",fontFamily:"Georgia,serif",lineHeight:1.7}}>{L.multiDesc}</p>{[[L.player1,"p1"],[L.player2,"p2"]].map(([label,key])=>(<div key={key} style={{marginBottom:"1rem"}}><p style={{fontSize:11,color:T.am,marginBottom:5,fontFamily:"Georgia,serif"}}>{label}</p><input value={settings[key]} onChange={e=>setSettings(s=>({...s,[key]:e.target.value}))} placeholder={label} style={{background:T.sf,border:`0.5px solid ${T.ab}`,color:T.tx,padding:"8px 12px",borderRadius:4,fontSize:13,fontFamily:"Georgia,serif",outline:"none",width:"100%",boxSizing:"border-box"}}/></div>))}<NBtn onClick={onStart} T={T}><i className="ti ti-users" style={{fontSize:12,marginRight:6}} aria-hidden="true"/>{L.startMulti}</NBtn></div>);}
 
-// ── PLAYER SWITCH ─────────────────────────────────────────────
 function PlayerSwitch({next,score,T,L,onContinue}){return(<div style={{textAlign:"center",paddingTop:"2rem"}}><i className="ti ti-arrow-left-right" style={{fontSize:40,color:T.am,display:"block",marginBottom:"1rem"}} aria-hidden="true"/><p style={{fontSize:10,letterSpacing:3,color:T.am,textTransform:"uppercase",marginBottom:"0.5rem"}}>{L.switchTitle}</p><p style={{fontSize:"1.1rem",color:T.tx,marginBottom:"0.5rem",fontFamily:"Georgia,serif"}}>{L.switchScore} {score} {L.pts}</p><p style={{fontSize:"0.9rem",color:T.mt,marginBottom:"2rem",fontFamily:"Georgia,serif"}}>{L.switchPass} <strong style={{color:T.am}}>{next}</strong></p><NBtn onClick={onContinue} T={T}>{L.switchBtn} {next} →</NBtn></div>);}
 
-// ── READING ───────────────────────────────────────────────────
 function Reading({scene,difficulty,lang,hintShown,onHint,onPick,T,L,hintCost,timerSecs,timerMax,isSpeed}){
   const isHard=difficulty==="desafiador"||difficulty==="challenging";
   const narr=isHard?S(scene,"narrH",lang):S(scene,"narr",lang);
@@ -701,37 +1150,41 @@ function Reading({scene,difficulty,lang,hintShown,onHint,onPick,T,L,hintCost,tim
     <div style={{display:"flex",flexDirection:"column",gap:"0.6rem"}}>{scene.choices.map((c,i)=><CBtn key={i} onClick={()=>onPick(i)} T={T}>{SC(c,"text",lang)}</CBtn>)}</div>
   </div>);}
 
-// ── CHOSEN / BRANCH ───────────────────────────────────────────
-function Chosen({choice,lang,T,L,onContinue}){const g=choice.good;const clr=g?T.gn:T.cr;const cbd=g?"rgba(93,202,165,.22)":"rgba(216,90,48,.22)";const cons=SC(choice,"cons",lang);return(<div><div style={{marginBottom:"1rem"}}><span style={{fontSize:10,letterSpacing:2,textTransform:"uppercase",color:clr,background:g?"rgba(93,202,165,.07)":"rgba(216,90,48,.07)",border:`0.5px solid ${cbd}`,padding:"3px 10px",borderRadius:4}}><i className={`ti ${g?"ti-check":"ti-alert-triangle"}`} style={{fontSize:12,marginRight:5,verticalAlign:"-1px"}} aria-hidden="true"/>{g?L.goodChoice:L.badChoice}</span></div><div style={{background:T.sf,border:`0.5px solid ${cbd}`,borderLeft:`3px solid ${clr}`,borderRadius:8,padding:"1.4rem 1.5rem",marginBottom:"1.5rem",lineHeight:1.85,fontSize:"0.92rem",whiteSpace:"pre-line",color:T.tx,fontFamily:"Georgia,serif"}}>{cons}</div><NBtn onClick={onContinue} T={T}>{choice.branch||choice.branchEn?L.continueBtn:L.conceptBtn}</NBtn></div>);}
-
+function Chosen({choice,lang,T,L,onContinue}){const g=choice.good;const clr=g?T.gn:T.cr;const cbd=g?"rgba(93,202,165,.22)":"rgba(216,90,48,.22)";const cons=SC(choice,"cons",lang);return(<div><div style={{marginBottom:"1rem"}}><span style={{fontSize:10,letterSpacing:2,textTransform:"uppercase",color:clr,background:g?"rgba(93,202,165,.07)":"rgba(216,90,48,.07)",border:`0.5px solid ${cbd}`,padding:"3px 10px",borderRadius:4}}><i className={`ti ${g?"ti-check":"ti-alert-triangle"}`} style={{fontSize:12,marginRight:5,verticalAlign:"-1px"}} aria-hidden="true"/>{g?L.goodChoice:L.badChoice}</span></div><div style={{background:T.sf,border:`0.5px solid ${cbd}`,borderLeft:`3px solid ${clr}`,borderRadius:8,padding:"1.4rem 1.5rem",marginBottom:"1.5rem",lineHeight:1.85,fontSize:"0.92rem",whiteSpace:"pre-line",color:T.tx,fontFamily:"Georgia,serif"}}>{cons}</div><NBtn onClick={onContinue} T={T}>{(choice.branch||choice.branchEn)?L.continueBtn:L.conceptBtn}</NBtn></div>);}
 function BranchScene({choice,lang,T,L,onContinue}){const branch=SC(choice,"branch",lang);return(<div><div style={{marginBottom:"1rem"}}><span style={{fontSize:10,letterSpacing:2,textTransform:"uppercase",color:T.am,background:T.al,border:`0.5px solid ${T.ab}`,padding:"3px 10px",borderRadius:4}}><i className="ti ti-rotate" style={{fontSize:12,marginRight:5,verticalAlign:"-1px"}} aria-hidden="true"/>{L.branchTag}</span></div><div style={{background:T.sf,border:`0.5px solid ${T.ab}`,borderLeft:`3px solid ${T.am}`,borderRadius:8,padding:"1.4rem 1.5rem",marginBottom:"1.5rem",lineHeight:1.85,fontSize:"0.92rem",whiteSpace:"pre-line",color:T.tx,fontFamily:"Georgia,serif"}}>{branch}</div><NBtn onClick={onContinue} T={T}>{L.conceptBtn}</NBtn></div>);}
 
-// ── CONCEPT CARD ──────────────────────────────────────────────
 function ConceptCard({scene,language,lang,T,L,onNext}){
   const c=scene.concept;
+  const[tab,setTab]=useState("code");
   const[codeLang,setCodeLang]=useState(language==="js"?"js":"py");
   const[py,setPy]=useState(c.py);const[js,setJs]=useState(c.js);
-  const curCode=codeLang==="py"?py:js;
-  const setCode=codeLang==="py"?setPy:setJs;
-  const nm=lang==="en"?(c.nmEn||c.nm):c.nm;
-  const sm=lang==="en"?(c.sumEn||c.sum):c.sum;
+  const curCode=codeLang==="py"?py:js;const setCode=codeLang==="py"?setPy:setJs;
+  const nm=lang==="en"?(c.nmEn||c.nm):c.nm;const sm=lang==="en"?(c.sumEn||c.sum):c.sum;
+  const hasAnim=!!ANIM_STEPS[scene.id];
   return(<div>
     <div style={{border:`0.5px solid ${c.bd}`,background:c.bg,borderRadius:8,padding:"1.5rem",marginBottom:"1.5rem"}}>
       <p style={{fontSize:10,letterSpacing:3,textTransform:"uppercase",color:c.cl,marginBottom:"0.4rem"}}><i className="ti ti-bulb" style={{fontSize:13,marginRight:6,verticalAlign:"-1px"}} aria-hidden="true"/>{L.conceptLearned}</p>
       <h3 style={{fontSize:"1.2rem",fontWeight:"normal",color:T.tx,marginBottom:"0.85rem",fontFamily:"Georgia,serif"}}>{nm}</h3>
       <p style={{fontSize:"0.88rem",color:T.tx,lineHeight:1.78,marginBottom:"1.25rem",fontFamily:"Georgia,serif"}}>{sm}</p>
-      <div style={{display:"flex",gap:6,marginBottom:8,alignItems:"center"}}>
-        {(language==="both"?[["py","Python"],["js","JavaScript"]]:language==="js"?[["js","JavaScript"]]:[["py","Python"]]).map(([k,l])=>(<button key={k} onClick={()=>setCodeLang(k)} style={{background:codeLang===k?T.al:"transparent",border:`0.5px solid ${codeLang===k?T.am:T.ab}`,color:codeLang===k?T.am:T.mt,padding:"3px 12px",borderRadius:4,cursor:"pointer",fontSize:11,fontFamily:"Georgia,serif"}}>{l}</button>))}
-        <button onClick={()=>setCode(codeLang==="py"?c.py:c.js)} style={{marginLeft:"auto",background:"transparent",border:`0.5px solid ${T.ab}`,color:T.mt,padding:"3px 10px",borderRadius:4,cursor:"pointer",fontSize:10,fontFamily:"Georgia,serif"}}><i className="ti ti-refresh" style={{fontSize:10,marginRight:4}} aria-hidden="true"/>{L.resetCode}</button>
+      <div style={{display:"flex",gap:6,marginBottom:"0.85rem"}}>
+        {[["code",`</> ${L.codeTab}`],["anim",`▶ ${L.animTab}`]].map(([k,l])=>(
+          <button key={k} onClick={()=>setTab(k)} disabled={k==="anim"&&!hasAnim} style={{background:tab===k?T.al:"transparent",border:`0.5px solid ${tab===k?T.am:T.ab}`,color:tab===k?T.am:T.mt,padding:"3px 12px",borderRadius:4,cursor:k==="anim"&&!hasAnim?"default":"pointer",fontSize:11,fontFamily:"Georgia,serif",opacity:k==="anim"&&!hasAnim?0.4:1}}>{l}</button>
+        ))}
       </div>
-      <textarea value={curCode} onChange={e=>setCode(e.target.value)} style={{width:"100%",background:T.cb,border:`0.5px solid rgba(239,159,39,.1)`,borderRadius:6,padding:"0.9rem 1.1rem",fontFamily:"Courier New,monospace",fontSize:"0.79rem",color:"#b8dfa0",lineHeight:1.78,resize:"vertical",minHeight:130,boxSizing:"border-box",outline:"none"}}/>
-      <p style={{fontSize:11,color:T.mt,marginTop:5,fontFamily:"Georgia,serif"}}><i className="ti ti-pencil" style={{fontSize:10,marginRight:4}} aria-hidden="true"/>{L.editCode}</p>
+      {tab==="code"&&<div>
+        <div style={{display:"flex",gap:6,marginBottom:8,alignItems:"center"}}>
+          {(language==="both"?[["py","Python"],["js","JavaScript"]]:language==="js"?[["js","JavaScript"]]:[["py","Python"]]).map(([k,l])=>(<button key={k} onClick={()=>setCodeLang(k)} style={{background:codeLang===k?T.al:"transparent",border:`0.5px solid ${codeLang===k?T.am:T.ab}`,color:codeLang===k?T.am:T.mt,padding:"3px 12px",borderRadius:4,cursor:"pointer",fontSize:11,fontFamily:"Georgia,serif"}}>{l}</button>))}
+          <button onClick={()=>setCode(codeLang==="py"?c.py:c.js)} style={{marginLeft:"auto",background:"transparent",border:`0.5px solid ${T.ab}`,color:T.mt,padding:"3px 10px",borderRadius:4,cursor:"pointer",fontSize:10,fontFamily:"Georgia,serif"}}><i className="ti ti-refresh" style={{fontSize:10,marginRight:4}} aria-hidden="true"/>{L.resetCode}</button>
+        </div>
+        <textarea value={curCode} onChange={e=>setCode(e.target.value)} style={{width:"100%",background:T.cb,border:`0.5px solid rgba(239,159,39,.1)`,borderRadius:6,padding:"0.9rem 1.1rem",fontFamily:"Courier New,monospace",fontSize:"0.79rem",color:"#b8dfa0",lineHeight:1.78,resize:"vertical",minHeight:120,boxSizing:"border-box",outline:"none"}}/>
+        <p style={{fontSize:11,color:T.mt,marginTop:5,fontFamily:"Georgia,serif"}}><i className="ti ti-pencil" style={{fontSize:10,marginRight:4}} aria-hidden="true"/>{L.editCode}</p>
+      </div>}
+      {tab==="anim"&&<CodeAnim sceneId={scene.id} lang={lang} T={T} L={L}/>}
     </div>
     <NBtn onClick={onNext} T={T}>{L.conceptNext}</NBtn>
   </div>);}
 
-// ── QUIZ ──────────────────────────────────────────────────────
-function Quiz({scene,lang,isLast,T,L,onSubmit}){
+function Quiz({scene,lang,isLast,T,L,onSubmit,onWrong}){
   const[sel,setSel]=useState(null);const[rev,setRev]=useState(false);
   const q=lang==="en"?(scene.quiz.qEn||scene.quiz.q):scene.quiz.q;
   const opts=lang==="en"?(scene.quiz.optsEn||scene.quiz.opts):scene.quiz.opts;
@@ -739,20 +1192,15 @@ function Quiz({scene,lang,isLast,T,L,onSubmit}){
   return(<div>
     <p style={{fontSize:10,letterSpacing:3,color:T.am,textTransform:"uppercase",marginBottom:"0.5rem"}}><i className="ti ti-help-circle" style={{fontSize:13,marginRight:6,verticalAlign:"-1px"}} aria-hidden="true"/>{L.quizTitle}</p>
     <p style={{fontSize:"0.96rem",color:T.tx,marginBottom:"1.25rem",fontFamily:"Georgia,serif",lineHeight:1.7}}>{q}</p>
-    <div style={{display:"flex",flexDirection:"column",gap:"0.6rem",marginBottom:"1rem"}}>{opts.map((opt,i)=>{let bd=T.ab,bg="transparent",tc=T.tx;if(rev){if(i===scene.quiz.ok){bd="rgba(93,202,165,.5)";bg="rgba(93,202,165,.08)";tc=T.gn;}else if(i===sel){bd="rgba(216,90,48,.5)";bg="rgba(216,90,48,.08)";tc=T.cr;}}else if(i===sel){bd=T.am;bg=T.al;}return(<button key={i} onClick={()=>!rev&&setSel(i)} style={{background:bg,border:`0.5px solid ${bd}`,color:tc,padding:"0.75rem 1rem",textAlign:"left",cursor:rev?"default":"pointer",borderRadius:8,fontSize:"0.9rem",fontFamily:"Georgia,serif",lineHeight:1.5,transition:"all 0.2s"}}>{rev&&i===scene.quiz.ok&&<i className="ti ti-check" style={{fontSize:12,marginRight:8,color:T.gn}} aria-hidden="true"/>}{rev&&i===sel&&i!==scene.quiz.ok&&<i className="ti ti-x" style={{fontSize:12,marginRight:8,color:T.cr}} aria-hidden="true"/>}{opt}</button>);})}
-    </div>
-    {!rev?(<NBtn onClick={()=>sel!==null&&setRev(true)} disabled={sel===null} T={T}>{L.quizCheck}</NBtn>):(<div><p style={{fontSize:"0.88rem",color:ok?T.gn:T.mt,marginBottom:"1rem",fontFamily:"Georgia,serif"}}>{ok?L.quizRight:L.quizWrong}</p><NBtn onClick={()=>onSubmit(sel)} T={T}>{isLast?L.quizFinal:L.quizNextCh}</NBtn></div>)}
+    <div style={{display:"flex",flexDirection:"column",gap:"0.6rem",marginBottom:"1rem"}}>{opts.map((opt,i)=>{let bd=T.ab,bg="transparent",tc=T.tx;if(rev){if(i===scene.quiz.ok){bd="rgba(93,202,165,.5)";bg="rgba(93,202,165,.08)";tc=T.gn;}else if(i===sel){bd="rgba(216,90,48,.5)";bg="rgba(216,90,48,.08)";tc=T.cr;}}else if(i===sel){bd=T.am;bg=T.al;}return(<button key={i} onClick={()=>!rev&&setSel(i)} style={{background:bg,border:`0.5px solid ${bd}`,color:tc,padding:"0.75rem 1rem",textAlign:"left",cursor:rev?"default":"pointer",borderRadius:8,fontSize:"0.9rem",fontFamily:"Georgia,serif",lineHeight:1.5,transition:"all 0.2s"}}>{rev&&i===scene.quiz.ok&&<i className="ti ti-check" style={{fontSize:12,marginRight:8,color:T.gn}} aria-hidden="true"/>}{rev&&i===sel&&i!==scene.quiz.ok&&<i className="ti ti-x" style={{fontSize:12,marginRight:8,color:T.cr}} aria-hidden="true"/>}{opt}</button>);})}</div>
+    {!rev?(<NBtn onClick={()=>sel!==null&&setRev(true)} disabled={sel===null} T={T}>{L.quizCheck}</NBtn>):(<div><p style={{fontSize:"0.88rem",color:ok?T.gn:T.mt,marginBottom:"1rem",fontFamily:"Georgia,serif"}}>{ok?L.quizRight:L.quizWrong}</p><NBtn onClick={()=>{if(!ok)onWrong&&onWrong(sel);onSubmit(sel);}} T={T}>{isLast?L.quizFinal:L.quizNextCh}</NBtn></div>)}
   </div>);}
 
-// ── GLOSSARY ──────────────────────────────────────────────────
-function Glossary({learned,lang,open,onToggle,T,L}){return(<div style={{borderTop:`0.5px solid ${T.ab}`,marginTop:"1.5rem"}}><button onClick={onToggle} style={{width:"100%",background:"transparent",border:"none",color:T.mt,padding:"0.75rem 0",cursor:"pointer",display:"flex",alignItems:"center",gap:8,fontSize:12,fontFamily:"Georgia,serif",letterSpacing:1}}><i className="ti ti-book" style={{fontSize:14,color:T.am}} aria-hidden="true"/>{L.grimoire} ({learned.length} {L.grimoireConcepts})<i className={`ti ${open?"ti-chevron-up":"ti-chevron-down"}`} style={{fontSize:12,marginLeft:"auto"}} aria-hidden="true"/></button>{open&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:8,paddingBottom:"1.5rem"}}>{learned.map((c,i)=>{const nm=lang==="en"?(c.nmEn||c.nm):c.nm;const sm=lang==="en"?(c.sumEn||c.sum):c.sum;return(<div key={i} style={{background:T.sf,border:`0.5px solid ${T.ab}`,borderRadius:8,padding:"0.75rem"}}><div style={{fontSize:10,letterSpacing:2,textTransform:"uppercase",color:c.cl,marginBottom:4}}>{nm}</div><div style={{fontSize:12,color:T.mt,lineHeight:1.6}}>{sm}</div></div>);})} {!learned.length&&<p style={{fontSize:13,color:T.mt,fontFamily:"Georgia,serif"}}>{L.grimoireEmpty}</p>}</div>}</div>);}
+function Glossary({learned,lang,open,onToggle,T,L}){return(<div style={{borderTop:`0.5px solid ${T.ab}`,marginTop:"1.5rem"}}><button onClick={onToggle} style={{width:"100%",background:"transparent",border:"none",color:T.mt,padding:"0.75rem 0",cursor:"pointer",display:"flex",alignItems:"center",gap:8,fontSize:12,fontFamily:"Georgia,serif",letterSpacing:1}}><i className="ti ti-book" style={{fontSize:14,color:T.am}} aria-hidden="true"/>{L.grimoire} ({learned.length} {L.grimoireConcepts})<i className={`ti ${open?"ti-chevron-up":"ti-chevron-down"}`} style={{fontSize:12,marginLeft:"auto"}} aria-hidden="true"/></button>{open&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(175px,1fr))",gap:8,paddingBottom:"1.5rem"}}>{learned.map((c,i)=>{const nm=lang==="en"?(c.nmEn||c.nm):c.nm;const sm=lang==="en"?(c.sumEn||c.sum):c.sum;return(<div key={i} style={{background:T.sf,border:`0.5px solid ${T.ab}`,borderRadius:8,padding:"0.75rem"}}><div style={{fontSize:10,letterSpacing:2,textTransform:"uppercase",color:c.cl,marginBottom:4}}>{nm}</div><div style={{fontSize:12,color:T.mt,lineHeight:1.6}}>{sm}</div></div>);})}{!learned.length&&<p style={{fontSize:13,color:T.mt,fontFamily:"Georgia,serif"}}>{L.grimoireEmpty}</p>}</div>}</div>);}
 
-// ── END SCREEN ─────────────────────────────────────────────────
-function End({players,currentP,mode,T,L,lang,learned,onRestart,onProfile,onLB,onChapters}){
+function End({players,currentP,mode,T,L,lang,learned,errors,onRestart,onProfile,onLB,onChapters,onReview}){
   const p=players[currentP];const other=mode==="multi"?players[1-currentP]:null;
-  const maxScore=SCENES.length*15;
-  const pct=Math.round((p.score/maxScore)*100);
-  const ri=pct>=90?0:pct>=70?1:pct>=50?2:3;
+  const maxScore=SCENES.length*15;const pct=Math.round((p.score/maxScore)*100);const ri=pct>=90?0:pct>=70?1:pct>=50?2:3;
   return(<div style={{textAlign:"center",paddingTop:"2rem"}}>
     <i className="ti ti-trophy" style={{fontSize:48,color:T.am,display:"block",marginBottom:"1rem"}} aria-hidden="true"/>
     <p style={{fontSize:10,letterSpacing:3,color:T.am,textTransform:"uppercase",marginBottom:"0.5rem"}}>{L.endTitle}</p>
@@ -765,6 +1213,7 @@ function End({players,currentP,mode,T,L,lang,learned,onRestart,onProfile,onLB,on
       <NBtn onClick={onProfile} T={T}><i className="ti ti-id-badge" style={{fontSize:12,marginRight:5}} aria-hidden="true"/>{L.endProfile}</NBtn>
       <NBtn onClick={onLB} T={T}><i className="ti ti-trophy" style={{fontSize:12,marginRight:5}} aria-hidden="true"/>{L.endLB}</NBtn>
       <NBtn onClick={()=>dlCheatsheet(learned,L)} T={T}><i className="ti ti-download" style={{fontSize:12,marginRight:5}} aria-hidden="true"/>{L.endCheat}</NBtn>
+      {errors.length>0&&<NBtn onClick={onReview} T={T}><i className="ti ti-history" style={{fontSize:12,marginRight:5}} aria-hidden="true"/>{L.endReview} ({errors.length})</NBtn>}
     </div>
     <div style={{display:"flex",flexWrap:"wrap",gap:8,justifyContent:"center"}}><NBtn onClick={onRestart} T={T}>{L.endReplay}</NBtn><NBtn onClick={onChapters} T={T}>{L.endMap}</NBtn></div>
     <p style={{fontSize:12,color:T.mt,marginTop:"1.5rem",fontFamily:"Georgia,serif"}}>{L.endContinue}</p>
@@ -772,9 +1221,8 @@ function End({players,currentP,mode,T,L,lang,learned,onRestart,onProfile,onLB,on
 
 // ══ MAIN APP ══════════════════════════════════════════════════
 export default function App(){
-  const[settings,setSettings]=useState({theme:"dark",difficulty:"iniciante",language:"py",lang:"pt",p1:"Byte",p2:"Pixel"});
-  const T=TH[settings.theme];
-  const L=UI[settings.lang||"pt"];
+  const[settings,setSettings]=useState({theme:"dark",difficulty:"iniciante",language:"py",lang:"pt",p1:"Byte",p2:"Pixel",fontSize:1});
+  const T=TH[settings.theme];const L=UI[settings.lang||"pt"];const lang=settings.lang||"pt";
   const audioRef=useRef(null);
   const[phase,setPhase]=useState("intro");
   const[idx,setIdx]=useState(0);
@@ -783,6 +1231,7 @@ export default function App(){
   const[currentP,setCurrentP]=useState(0);
   const[mode,setMode]=useState("solo");
   const[learned,setLearned]=useState([]);
+  const[errors,setErrors]=useState([]);
   const[glossary,setGlossary]=useState(false);
   const[hintShown,setHintShown]=useState(false);
   const[timerSecs,setTimerSecs]=useState(30);
@@ -790,48 +1239,62 @@ export default function App(){
   const[quizStreak,setQuizStreak]=useState(0);
   const[toastAch,setToastAch]=useState(null);
   const[animKey,setAnimKey]=useState(0);
+  const[transitionOut,setTransitionOut]=useState(false);
   const[chapterStart,setChapterStart]=useState(Date.now());
+  const[pendingBoss,setPendingBoss]=useState(null);
   const timerRef=useRef(null);
-  const isSpeed=mode==="speed";
-  const isMulti=mode==="multi";
-  const scene=SCENES[idx];
-  const choice=scene&&choiceIdx!==null?scene.choices[choiceIdx]:null;
+  const isSpeed=mode==="speed";const isMulti=mode==="multi";
+  const scene=SCENES[idx];const choice=scene&&choiceIdx!==null?scene.choices[choiceIdx]:null;
   const hintCost=settings.difficulty==="desafiador"||settings.difficulty==="challenging"?2:0;
   const p=players[currentP];
-  const lang=settings.lang||"pt";
+  const maxScore=SCENES.length*15;
+
+  // Persistent XP
+  const[globalXP,setGlobalXP]=useState(()=>{try{return parseInt(localStorage.getItem("tdc_xp")||"0");}catch{return 0;}});
+  const xpData=getLevel(globalXP);
+  const addXP=useCallback((n)=>setGlobalXP(prev=>{const nv=prev+n;try{localStorage.setItem("tdc_xp",String(nv));}catch{}return nv;}),[]);
+
+  // Streak
+  const[streak,setStreak]=useState(()=>{try{const d=localStorage.getItem("tdc_streak_date");const s=parseInt(localStorage.getItem("tdc_streak")||"0");if(!d)return 0;const last=new Date(d);const now=new Date();const diff=Math.floor((now-last)/(1000*60*60*24));if(diff===0)return s;if(diff===1){const ns=s+1;localStorage.setItem("tdc_streak",String(ns));localStorage.setItem("tdc_streak_date",now.toDateString());return ns;}localStorage.setItem("tdc_streak","1");localStorage.setItem("tdc_streak_date",now.toDateString());return 1;}catch{return 0;}});
 
   useEffect(()=>{
-    try{const sv=JSON.parse(localStorage.getItem("tdc_save")||"null");if(sv&&sv.phase!=="intro"&&sv.phase!=="end"){setPhase(sv.phase||"intro");setIdx(sv.idx||0);setLearned(sv.learned||[]);setPlayers(sv.players||players);setSettings(sv.settings||settings);}}catch{}
+    try{
+      const sv=JSON.parse(localStorage.getItem("tdc_save")||"null");
+      if(sv&&sv.phase!=="intro"&&sv.phase!=="end"){setPhase(sv.phase);setIdx(sv.idx||0);setLearned(sv.learned||[]);setPlayers(sv.players||players);setSettings(s=>({...s,...(sv.settings||{}),...{lang:s.lang}}));}
+    }catch{}
     audioRef.current=mkAudio();
+    if(!localStorage.getItem("tdc_streak_date")){try{localStorage.setItem("tdc_streak","1");localStorage.setItem("tdc_streak_date",new Date().toDateString());}catch{}}
   },[]);
 
-  useEffect(()=>{if(phase!=="intro")try{localStorage.setItem("tdc_save",JSON.stringify({phase,idx,learned,players,settings}));}catch{};},[phase,idx,learned,settings]);
+  useEffect(()=>{if(phase!=="intro")try{localStorage.setItem("tdc_save",JSON.stringify({phase,idx,learned,players,settings}));}catch{};},[phase,idx,learned]);
+  useEffect(()=>{if(xpData.lvl>=10)achieve("lvl10");},[globalXP]);
 
   useEffect(()=>{
     if(isSpeed&&phase==="reading"){setTimerSecs(timerMax);timerRef.current=setInterval(()=>{setTimerSecs(s=>{if(s<=1){clearInterval(timerRef.current);audioRef.current?.err();pick(Math.floor(Math.random()*scene.choices.length));return 0;}if(s<=10)audioRef.current?.tick();return s-1;});},1000);}
     return()=>clearInterval(timerRef.current);
   },[phase,idx,isSpeed]);
 
-  const go=(ph,ni)=>{if(ni!==undefined)setIdx(ni);setPhase(ph);setAnimKey(k=>k+1);};
+  const go=(ph,ni)=>{
+    setTransitionOut(true);
+    setTimeout(()=>{if(ni!==undefined)setIdx(ni);setPhase(ph);setAnimKey(k=>k+1);setTransitionOut(false);},240);
+  };
 
   const achieve=(id)=>{
     setPlayers(prev=>{const ps=[...prev];if(!ps[currentP].achievements.includes(id)){ps[currentP]={...ps[currentP],achievements:[...ps[currentP].achievements,id]};const i=ACH_IDS.indexOf(id);if(i>=0){const a=L.ach[i];if(a)setToastAch({...a,icon:ACH_ICONS[i]});}}return ps;});
   };
-
   const addScore=(n)=>setPlayers(prev=>{const ps=[...prev];ps[currentP]={...ps[currentP],score:ps[currentP].score+n};return ps;});
-
   const saveToLB=(score,name)=>{try{const lb=JSON.parse(localStorage.getItem("tdc_lb")||"[]");lb.push({name:name||"Byte",score,mode,difficulty:settings.difficulty,date:Date.now()});lb.sort((a,b)=>b.score-a.score);localStorage.setItem("tdc_lb",JSON.stringify(lb.slice(0,20)));}catch{}};
-
   const initPlayers=()=>[{name:settings.p1||"Byte",score:0,achievements:[],inventory:[]},{name:settings.p2||"Pixel",score:0,achievements:[],inventory:[]}];
 
-  const start=()=>{setPlayers(initPlayers());setMode("solo");setIdx(0);setLearned([]);setHintShown(false);setGlossary(false);setChapterStart(Date.now());go("reading",0);};
-  const startMulti=()=>{setPlayers(initPlayers());setMode("multi");setCurrentP(0);setIdx(0);setLearned([]);setHintShown(false);setChapterStart(Date.now());go("reading",0);achieve("multi");};
-  const startDaily=(dailyIdx)=>{setPlayers(initPlayers());setMode("daily");setIdx(dailyIdx);setLearned([]);setHintShown(false);setChapterStart(Date.now());go("reading",dailyIdx);};
+  const startGame=(m,di)=>{setPlayers(initPlayers());setMode(m);setCurrentP(0);setIdx(di||0);setLearned([]);setErrors([]);setHintShown(false);setGlossary(false);setChapterStart(Date.now());setPendingBoss(null);go("reading",di||0);};
+  const start=()=>startGame("solo",0);
+  const startMulti=()=>{setPlayers(initPlayers());setMode("multi");setCurrentP(0);setIdx(0);setLearned([]);setErrors([]);setHintShown(false);setChapterStart(Date.now());setPendingBoss(null);go("reading",0);achieve("multi");};
+  const startDaily=(di)=>startGame("daily",di);
 
   const pick=(i)=>{
     clearInterval(timerRef.current);setChoiceIdx(i);
     const good=SCENES[idx].choices[i].good;
-    if(good){addScore(10);audioRef.current?.ok();if(players[currentP].score===0)achieve("first_good");}else audioRef.current?.err();
+    if(good){addScore(10);addXP(15);audioRef.current?.ok();if(players[currentP].score===0)achieve("first_good");}else audioRef.current?.err();
     if(!hintShown)achieve("no_hints");
     if((Date.now()-chapterStart)/1000<25)achieve("speed");
     go("chosen");
@@ -839,67 +1302,80 @@ export default function App(){
 
   const afterChosen=()=>{if(choice?.branch||choice?.branchEn)go("branch");else go("concept");};
 
-  const submitQuiz=(ans)=>{
+  const submitQuiz=(ans,wrongAns)=>{
     const correct=ans===scene.quiz.ok;
-    if(correct){addScore(5);audioRef.current?.ok();const ns=quizStreak+1;setQuizStreak(ns);if(ns>=3)achieve("streak3");}else setQuizStreak(0);
+    if(correct){addScore(5);addXP(8);audioRef.current?.ok();const ns=quizStreak+1;setQuizStreak(ns);if(ns>=3)achieve("streak3");}else{setQuizStreak(0);}
     if(settings.language==="both")achieve("polyglot");
     const newInv=p.inventory.find(s=>s.id===scene.id)?p.inventory:[...p.inventory,scene];
     setPlayers(prev=>{const ps=[...prev];ps[currentP]={...ps[currentP],inventory:newInv};return ps;});
     if(newInv.length>=6)achieve("collector");
     const newLearned=learned.find(l=>l.nm===scene.concept.nm)?learned:[...learned,{...scene.concept}];
     setLearned(newLearned);
-    const ni=idx+1;const isLast=(mode==="daily")||(ni>=SCENES.length);
-    if(isLast){
+    // Check for boss after this chapter
+    const boss=BOSSES.find(b=>b.afterIdx===idx);
+    const ni=idx+1;
+    const isLast=(mode==="daily")||(ni>=SCENES.length);
+    const finish=()=>{
       if(players[currentP].score>=SCENES.length*10)achieve("flawless");
       if(mode==="daily")achieve("daily");
+      achieve("all_chapters");
       saveToLB(players[currentP].score,players[currentP].name);
       audioRef.current?.win();
       if(mode==="multi"&&currentP===0){setCurrentP(1);setIdx(0);setHintShown(false);setChapterStart(Date.now());go("playerswitch");}
       else go("end");
-    } else {setChoiceIdx(null);setHintShown(false);setChapterStart(Date.now());go("reading",ni);}
+    };
+    if(boss&&!isLast){
+      setPendingBoss({boss,nextIdx:ni});setChoiceIdx(null);setHintShown(false);go("boss");
+    } else if(isLast){finish();}
+    else{setChoiceIdx(null);setHintShown(false);setChapterStart(Date.now());go("reading",ni);}
   };
 
-  const showHeader=!["intro","multi-setup","end","profile","leaderboard","achievements","map","playerswitch"].includes(phase);
-  const maxScore=SCENES.length*15;
+  const afterBug=()=>{go("quiz");};
+  const showHeader=!["intro","multi-setup","end","profile","leaderboard","achievements","map","playerswitch","review"].includes(phase);
+  const fs=settings.fontSize||1;
 
-  return(<div style={{padding:"0.75rem 0"}}>
-    <style>{`@keyframes fi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}.fi{animation:fi 0.28s ease}`}</style>
+  return(<div style={{padding:"0.75rem 0",fontSize:`${fs}rem`}}>
+    <style>{`
+      @keyframes sceneIn{from{opacity:0;transform:translateY(8px) scale(0.99)}to{opacity:1;transform:translateY(0) scale(1)}}
+      @keyframes sceneOut{from{opacity:1;transform:scale(1)}to{opacity:0;transform:scale(0.98)}}
+      .scene-in{animation:sceneIn 0.32s cubic-bezier(.22,.68,0,1.2) both}
+      .scene-out{animation:sceneOut 0.2s ease forwards}
+    `}</style>
     {toastAch&&<AchToast ach={toastAch} T={T} onClose={()=>setToastAch(null)}/>}
     <div style={{background:T.bg,borderRadius:12,border:`0.5px solid ${T.ab}`,overflow:"hidden",minHeight:480}}>
-      <h2 className="sr-only">{lang==="en"?"Lands of Code — Programming RPG":"Terras do Código — RPG de programação"}</h2>
-
       {showHeader&&<div style={{padding:"1.75rem 2rem 0"}}>
-        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:"0.75rem"}}>
+        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:"0.75rem",flexWrap:"wrap"}}>
           <span style={{fontSize:11,color:T.am}}><i className="ti ti-star" style={{fontSize:12,marginRight:4}} aria-hidden="true"/>{p.score} {L.pts}</span>
           {isMulti&&<span style={{fontSize:11,color:T.mt}}>· {p.name}</span>}
           <span style={{fontSize:10,background:T.al,border:`0.5px solid ${T.ab}`,color:T.am,padding:"2px 7px",borderRadius:4}}>{settings.difficulty}</span>
-          {isSpeed&&<span style={{fontSize:10,background:"rgba(216,90,48,.1)",border:"0.5px solid rgba(216,90,48,.22)",color:T.cr,padding:"2px 7px",borderRadius:4}}>{L.speed}</span>}
-          <div style={{marginLeft:"auto",display:"flex",gap:6}}>
-            {[["ti-map","map"],["ti-award","achievements"],["ti-trophy","leaderboard"]].map(([ic,ph])=>(<button key={ph} onClick={()=>go(ph)} title={ph} style={{background:"transparent",border:`0.5px solid ${T.ab}`,color:T.mt,width:26,height:26,borderRadius:4,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><i className={`ti ${ic}`} style={{fontSize:13}} aria-hidden="true"/></button>))}
+          <StreakBadge streak={streak} T={T} L={L}/>
+          <div style={{marginLeft:"auto",display:"flex",gap:5}}>
+            {[["ti-map","map"],["ti-award","achievements"],["ti-trophy","leaderboard"]].map(([ic,ph])=>(<button key={ph} onClick={()=>go(ph)} style={{background:"transparent",border:`0.5px solid ${T.ab}`,color:T.mt,width:26,height:26,borderRadius:4,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><i className={`ti ${ic}`} style={{fontSize:13}} aria-hidden="true"/></button>))}
           </div>
         </div>
+        <XPBar xpData={xpData} lang={lang} T={T} L={L}/>
         <ProgBar idx={mode==="daily"?0:idx} total={mode==="daily"?1:SCENES.length} T={T}/>
-        {p.inventory.length>0&&<div style={{display:"flex",flexWrap:"wrap",gap:5,marginBottom:"0.75rem"}}>{p.inventory.map((s,i)=>{const nm=lang==="en"?(s.item.nameEn||s.item.name):s.item.name;return(<span key={i} title={nm} style={{fontSize:10,color:T.mt,background:T.sf,border:`0.5px solid ${T.ab}`,borderRadius:4,padding:"2px 7px",display:"flex",alignItems:"center",gap:4}}><i className={`ti ${s.item.icon}`} style={{fontSize:11,color:T.am}} aria-hidden="true"/>{nm}</span>);})}</div>}
+        {p.inventory.length>0&&<div style={{display:"flex",flexWrap:"wrap",gap:4,marginBottom:"0.6rem"}}>{p.inventory.map((s,i)=>{const nm=lang==="en"?(s.item.nameEn||s.item.name):s.item.name;return(<span key={i} title={nm} style={{fontSize:10,color:T.mt,background:T.sf,border:`0.5px solid ${T.ab}`,borderRadius:4,padding:"2px 7px",display:"flex",alignItems:"center",gap:3}}><i className={`ti ${s.item.icon}`} style={{fontSize:11,color:T.am}} aria-hidden="true"/>{nm}</span>);})}</div>}
       </div>}
-
-      <div key={animKey} className="fi" style={{padding:showHeader?"0 2rem 2rem":"2rem 2rem 2rem"}}>
-        {phase==="intro"&&<Intro onStart={start} onDaily={startDaily} onMulti={()=>go("multi-setup")} settings={settings} setSettings={setSettings}/>}
+      <div key={animKey} className={transitionOut?"scene-out":"scene-in"} style={{padding:showHeader?"0 2rem 2rem":"2rem 2rem 2rem"}}>
+        {phase==="intro"&&<Intro onStart={start} onDaily={startDaily} onMulti={()=>go("multi-setup")} settings={settings} setSettings={setSettings} streak={streak} xpData={xpData}/>}
         {phase==="multi-setup"&&<MultiSetup T={T} L={L} settings={settings} setSettings={setSettings} onStart={startMulti} onBack={()=>go("intro")}/>}
         {phase==="playerswitch"&&<PlayerSwitch next={players[1].name} score={players[0].score} T={T} L={L} onContinue={()=>{setHintShown(false);setChapterStart(Date.now());go("reading",0);}}/>}
         {phase==="reading"&&scene&&<Reading scene={scene} difficulty={settings.difficulty} lang={lang} hintShown={hintShown} onHint={()=>{if(hintCost>0)addScore(-hintCost);setHintShown(true);}} onPick={pick} T={T} L={L} hintCost={hintCost} timerSecs={timerSecs} timerMax={timerMax} isSpeed={isSpeed}/>}
         {phase==="chosen"&&choice&&<Chosen choice={choice} lang={lang} T={T} L={L} onContinue={afterChosen}/>}
         {phase==="branch"&&choice&&<BranchScene choice={choice} lang={lang} T={T} L={L} onContinue={()=>go("concept")}/>}
-        {phase==="concept"&&scene&&<ConceptCard scene={scene} language={settings.language} lang={lang} T={T} L={L} onNext={()=>go("sandbox")}/>}
+        {phase==="concept"&&scene&&<ConceptCard scene={scene} language={settings.language} lang={lang} T={T} L={L} onNext={()=>go("fixbug")}/>}
+        {phase==="fixbug"&&scene&&<FixBug scene={scene} T={T} L={L} onNext={afterBug} addScore={addScore} onAchieve={achieve}/>}
         {phase==="sandbox"&&scene&&<Sandbox scene={scene} language={settings.language} T={T} L={L} onNext={()=>go("quiz")} onAchieve={achieve}/>}
-        {phase==="quiz"&&scene&&<Quiz scene={scene} lang={lang} isLast={mode==="daily"||(idx===SCENES.length-1)} T={T} L={L} onSubmit={submitQuiz}/>}
-        {phase==="map"&&<MapScreen scenes={SCENES} inventory={p.inventory} onJump={i=>{setChoiceIdx(null);setHintShown(false);setChapterStart(Date.now());go("reading",i);}} onBack={()=>go(idx>=0?"reading":"intro")} T={T} L={L}/>}
-        {phase==="achievements"&&<AchScreen unlocked={p.achievements} T={T} L={L} onBack={()=>go(idx>=0?"reading":"intro")}/>}
+        {phase==="quiz"&&scene&&<Quiz scene={scene} lang={lang} isLast={mode==="daily"||(idx===SCENES.length-1)} T={T} L={L} onSubmit={(ans)=>{const wrong=ans!==scene.quiz.ok;if(wrong)setErrors(e=>[...e,{...scene,chosen:ans}]);submitQuiz(ans);}} onWrong={(ans)=>setErrors(e=>[...e,{...scene,chosen:ans}])}/>}
+        {phase==="boss"&&pendingBoss&&<BossChallenge boss={pendingBoss.boss} lang={lang} T={T} L={L} addXP={addXP} onDone={(pts)=>{addScore(pts);achieve("boss_slayer");audioRef.current?.ok();setChoiceIdx(null);setHintShown(false);setChapterStart(Date.now());go("reading",pendingBoss.nextIdx);setPendingBoss(null);}}/>}
+        {phase==="map"&&<MapScreen scenes={SCENES} inventory={p.inventory} onJump={i=>{setChoiceIdx(null);setHintShown(false);setChapterStart(Date.now());go("reading",i);}} onBack={()=>go("reading")} T={T} L={L}/>}
+        {phase==="achievements"&&<AchScreen unlocked={p.achievements} T={T} L={L} onBack={()=>go("reading")}/>}
         {phase==="leaderboard"&&<LeaderBoard playerName={p.name} T={T} L={L} onBack={()=>go(idx>=0?"reading":"end")}/>}
-        {phase==="profile"&&<ProfileScreen name={p.name} score={p.score} maxScore={maxScore} learned={learned} unlocked={p.achievements} inventory={p.inventory} difficulty={settings.difficulty} mode={mode} T={T} L={L} onBack={()=>go("end")}/>}
-        {phase==="end"&&<End players={players} currentP={currentP} mode={mode} T={T} L={L} lang={lang} learned={learned} onRestart={()=>{try{localStorage.removeItem("tdc_save");}catch{}setPhase("intro");setIdx(0);setLearned([]);setPlayers(initPlayers());setCurrentP(0);setAnimKey(k=>k+1);}} onProfile={()=>go("profile")} onLB={()=>go("leaderboard")} onChapters={()=>go("map")}/>}
+        {phase==="profile"&&<ProfileScreen name={p.name} score={p.score} maxScore={maxScore} learned={learned} unlocked={p.achievements} inventory={p.inventory} difficulty={settings.difficulty} mode={mode} xpData={xpData} streak={streak} T={T} L={L} lang={lang} onBack={()=>go("end")}/>}
+        {phase==="review"&&<ReviewErrors errors={errors} lang={lang} T={T} L={L} onClose={()=>go("end")}/>}
+        {phase==="end"&&<End players={players} currentP={currentP} mode={mode} T={T} L={L} lang={lang} learned={learned} errors={errors} onRestart={()=>{try{localStorage.removeItem("tdc_save");}catch{}setPhase("intro");setIdx(0);setLearned([]);setErrors([]);setPlayers(initPlayers());setCurrentP(0);setAnimKey(k=>k+1);}} onProfile={()=>go("profile")} onLB={()=>go("leaderboard")} onChapters={()=>go("map")} onReview={()=>go("review")}/>}
       </div>
-
       {showHeader&&<div style={{padding:"0 2rem"}}><Glossary learned={learned.map(c=>({nm:c.nm,nmEn:c.nmEn,cl:c.cl,sum:c.sum,sumEn:c.sumEn}))} lang={lang} open={glossary} onToggle={()=>setGlossary(g=>!g)} T={T} L={L}/></div>}
     </div>
-  </div>);
-}
+  </div>);}
