@@ -824,6 +824,7 @@ function CodeAnim({sceneId,lang,T,L}){
 
 // ── BOSS CHALLENGE ───────────────────────────────────────────
 function BossChallenge({boss,lang,T,L,onDone,addXP}){
+  const[started,setStarted]=useState(false);
   const[qIdx,setQIdx]=useState(0);const[sel,setSel]=useState(null);const[rev,setRev]=useState(false);
   const[correct,setCorrect]=useState(0);const[timer,setTimer]=useState(30);const timerRef=useRef(null);
   const q=boss.questions[qIdx];
@@ -833,15 +834,16 @@ function BossChallenge({boss,lang,T,L,onDone,addXP}){
   const intro=lang==="en"?(boss.enIntro||boss.ptIntro):boss.ptIntro;
 
   useEffect(()=>{
+    if(!started)return;
     setTimer(30);setSel(null);setRev(false);
     timerRef.current=setInterval(()=>setTimer(t=>{if(t<=1){clearInterval(timerRef.current);setRev(true);return 0;}return t-1;}),1000);
     return()=>clearInterval(timerRef.current);
-  },[qIdx]);
+  },[qIdx,started]);
 
   const pick=(i)=>{clearInterval(timerRef.current);setSel(i);setRev(true);if(i===q.ok)setCorrect(c=>c+1);};
   const next=()=>{if(qIdx<boss.questions.length-1){setQIdx(i=>i+1);}else{const pts=correct*15;addXP(boss.xpBonus);onDone(pts);}};
 
-  if(qIdx===0&&sel===null&&!rev)return(
+  if(!started)return(
     <div style={{textAlign:"center",paddingTop:"1.5rem"}}>
       <div style={{fontSize:40,marginBottom:"0.75rem"}}><i className={`ti ${boss.icon}`} style={{color:T.cr}} aria-hidden="true"/></div>
       <p style={{fontSize:10,letterSpacing:3,color:T.cr,textTransform:"uppercase",marginBottom:"0.5rem"}}>{L.bossIntro}</p>
@@ -851,8 +853,8 @@ function BossChallenge({boss,lang,T,L,onDone,addXP}){
         {boss.questions.map((_,i)=><div key={i} style={{width:32,height:32,borderRadius:"50%",background:T.al,border:`0.5px solid ${T.ab}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,color:T.mt}}>Q{i+1}</div>)}
       </div>
       <div style={{display:"flex",gap:10,justifyContent:"center"}}>
-        <NBtn onClick={()=>setQIdx(0)} T={T}><i className="ti ti-sword" style={{fontSize:12,marginRight:6}} aria-hidden="true"/>{L.bossNext.replace("→","").trim()} →</NBtn>
-        <NBtn onClick={()=>onDone(0)} T={T}>Pular boss</NBtn>
+        <NBtn onClick={()=>{setStarted(true);}} T={T}><i className="ti ti-sword" style={{fontSize:12,marginRight:6}} aria-hidden="true"/>{L.bossNext.replace("→","").trim()} →</NBtn>
+        <NBtn onClick={()=>onDone(0)} T={T}>{lang==="en"?"Skip boss":"Pular boss"}</NBtn>
       </div>
     </div>);
 
@@ -1184,7 +1186,7 @@ function ConceptCard({scene,language,lang,T,L,onNext}){
     <NBtn onClick={onNext} T={T}>{L.conceptNext}</NBtn>
   </div>);}
 
-function Quiz({scene,lang,isLast,T,L,onSubmit,onWrong}){
+function Quiz({scene,lang,isLast,T,L,onSubmit}){
   const[sel,setSel]=useState(null);const[rev,setRev]=useState(false);
   const q=lang==="en"?(scene.quiz.qEn||scene.quiz.q):scene.quiz.q;
   const opts=lang==="en"?(scene.quiz.optsEn||scene.quiz.opts):scene.quiz.opts;
@@ -1193,7 +1195,7 @@ function Quiz({scene,lang,isLast,T,L,onSubmit,onWrong}){
     <p style={{fontSize:10,letterSpacing:3,color:T.am,textTransform:"uppercase",marginBottom:"0.5rem"}}><i className="ti ti-help-circle" style={{fontSize:13,marginRight:6,verticalAlign:"-1px"}} aria-hidden="true"/>{L.quizTitle}</p>
     <p style={{fontSize:"0.96rem",color:T.tx,marginBottom:"1.25rem",fontFamily:"Georgia,serif",lineHeight:1.7}}>{q}</p>
     <div style={{display:"flex",flexDirection:"column",gap:"0.6rem",marginBottom:"1rem"}}>{opts.map((opt,i)=>{let bd=T.ab,bg="transparent",tc=T.tx;if(rev){if(i===scene.quiz.ok){bd="rgba(93,202,165,.5)";bg="rgba(93,202,165,.08)";tc=T.gn;}else if(i===sel){bd="rgba(216,90,48,.5)";bg="rgba(216,90,48,.08)";tc=T.cr;}}else if(i===sel){bd=T.am;bg=T.al;}return(<button key={i} onClick={()=>!rev&&setSel(i)} style={{background:bg,border:`0.5px solid ${bd}`,color:tc,padding:"0.75rem 1rem",textAlign:"left",cursor:rev?"default":"pointer",borderRadius:8,fontSize:"0.9rem",fontFamily:"Georgia,serif",lineHeight:1.5,transition:"all 0.2s"}}>{rev&&i===scene.quiz.ok&&<i className="ti ti-check" style={{fontSize:12,marginRight:8,color:T.gn}} aria-hidden="true"/>}{rev&&i===sel&&i!==scene.quiz.ok&&<i className="ti ti-x" style={{fontSize:12,marginRight:8,color:T.cr}} aria-hidden="true"/>}{opt}</button>);})}</div>
-    {!rev?(<NBtn onClick={()=>sel!==null&&setRev(true)} disabled={sel===null} T={T}>{L.quizCheck}</NBtn>):(<div><p style={{fontSize:"0.88rem",color:ok?T.gn:T.mt,marginBottom:"1rem",fontFamily:"Georgia,serif"}}>{ok?L.quizRight:L.quizWrong}</p><NBtn onClick={()=>{if(!ok)onWrong&&onWrong(sel);onSubmit(sel);}} T={T}>{isLast?L.quizFinal:L.quizNextCh}</NBtn></div>)}
+    {!rev?(<NBtn onClick={()=>sel!==null&&setRev(true)} disabled={sel===null} T={T}>{L.quizCheck}</NBtn>):(<div><p style={{fontSize:"0.88rem",color:ok?T.gn:T.mt,marginBottom:"1rem",fontFamily:"Georgia,serif"}}>{ok?L.quizRight:L.quizWrong}</p><NBtn onClick={()=>onSubmit(sel)} T={T}>{isLast?L.quizFinal:L.quizNextCh}</NBtn></div>)}
   </div>);}
 
 function Glossary({learned,lang,open,onToggle,T,L}){return(<div style={{borderTop:`0.5px solid ${T.ab}`,marginTop:"1.5rem"}}><button onClick={onToggle} style={{width:"100%",background:"transparent",border:"none",color:T.mt,padding:"0.75rem 0",cursor:"pointer",display:"flex",alignItems:"center",gap:8,fontSize:12,fontFamily:"Georgia,serif",letterSpacing:1}}><i className="ti ti-book" style={{fontSize:14,color:T.am}} aria-hidden="true"/>{L.grimoire} ({learned.length} {L.grimoireConcepts})<i className={`ti ${open?"ti-chevron-up":"ti-chevron-down"}`} style={{fontSize:12,marginLeft:"auto"}} aria-hidden="true"/></button>{open&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(175px,1fr))",gap:8,paddingBottom:"1.5rem"}}>{learned.map((c,i)=>{const nm=lang==="en"?(c.nmEn||c.nm):c.nm;const sm=lang==="en"?(c.sumEn||c.sum):c.sum;return(<div key={i} style={{background:T.sf,border:`0.5px solid ${T.ab}`,borderRadius:8,padding:"0.75rem"}}><div style={{fontSize:10,letterSpacing:2,textTransform:"uppercase",color:c.cl,marginBottom:4}}>{nm}</div><div style={{fontSize:12,color:T.mt,lineHeight:1.6}}>{sm}</div></div>);})}{!learned.length&&<p style={{fontSize:13,color:T.mt,fontFamily:"Georgia,serif"}}>{L.grimoireEmpty}</p>}</div>}</div>);}
@@ -1330,7 +1332,7 @@ export default function App(){
     else{setChoiceIdx(null);setHintShown(false);setChapterStart(Date.now());go("reading",ni);}
   };
 
-  const afterBug=()=>{go("quiz");};
+  const afterBug=()=>{go("sandbox");};
   const showHeader=!["intro","multi-setup","end","profile","leaderboard","achievements","map","playerswitch","review"].includes(phase);
   const fs=settings.fontSize||1;
 
@@ -1367,10 +1369,10 @@ export default function App(){
         {phase==="concept"&&scene&&<ConceptCard scene={scene} language={settings.language} lang={lang} T={T} L={L} onNext={()=>go("fixbug")}/>}
         {phase==="fixbug"&&scene&&<FixBug scene={scene} T={T} L={L} onNext={afterBug} addScore={addScore} onAchieve={achieve}/>}
         {phase==="sandbox"&&scene&&<Sandbox scene={scene} language={settings.language} T={T} L={L} onNext={()=>go("quiz")} onAchieve={achieve}/>}
-        {phase==="quiz"&&scene&&<Quiz scene={scene} lang={lang} isLast={mode==="daily"||(idx===SCENES.length-1)} T={T} L={L} onSubmit={(ans)=>{const wrong=ans!==scene.quiz.ok;if(wrong)setErrors(e=>[...e,{...scene,chosen:ans}]);submitQuiz(ans);}} onWrong={(ans)=>setErrors(e=>[...e,{...scene,chosen:ans}])}/>}
+        {phase==="quiz"&&scene&&<Quiz scene={scene} lang={lang} isLast={mode==="daily"||(idx===SCENES.length-1)} T={T} L={L} onSubmit={(ans)=>{if(ans!==scene.quiz.ok)setErrors(e=>[...e,{...scene,chosen:ans}]);submitQuiz(ans);}}/>}
         {phase==="boss"&&pendingBoss&&<BossChallenge boss={pendingBoss.boss} lang={lang} T={T} L={L} addXP={addXP} onDone={(pts)=>{addScore(pts);achieve("boss_slayer");audioRef.current?.ok();setChoiceIdx(null);setHintShown(false);setChapterStart(Date.now());go("reading",pendingBoss.nextIdx);setPendingBoss(null);}}/>}
-        {phase==="map"&&<MapScreen scenes={SCENES} inventory={p.inventory} onJump={i=>{setChoiceIdx(null);setHintShown(false);setChapterStart(Date.now());go("reading",i);}} onBack={()=>go("reading")} T={T} L={L}/>}
-        {phase==="achievements"&&<AchScreen unlocked={p.achievements} T={T} L={L} onBack={()=>go("reading")}/>}
+        {phase==="map"&&<MapScreen scenes={SCENES} inventory={p.inventory} onJump={i=>{setChoiceIdx(null);setHintShown(false);setChapterStart(Date.now());go("reading",i);}} onBack={()=>go(learned.length>0?"reading":"intro")} T={T} L={L}/>}
+        {phase==="achievements"&&<AchScreen unlocked={p.achievements} T={T} L={L} onBack={()=>go(learned.length>0?"reading":"intro")}/>}
         {phase==="leaderboard"&&<LeaderBoard playerName={p.name} T={T} L={L} onBack={()=>go(idx>=0?"reading":"end")}/>}
         {phase==="profile"&&<ProfileScreen name={p.name} score={p.score} maxScore={maxScore} learned={learned} unlocked={p.achievements} inventory={p.inventory} difficulty={settings.difficulty} mode={mode} xpData={xpData} streak={streak} T={T} L={L} lang={lang} onBack={()=>go("end")}/>}
         {phase==="review"&&<ReviewErrors errors={errors} lang={lang} T={T} L={L} onClose={()=>go("end")}/>}
