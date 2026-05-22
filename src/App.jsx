@@ -1112,13 +1112,7 @@ function Intro({onStart,onDaily,onMulti,settings,setSettings,streak,xpData}){
     <div style={{background:T.sf,border:`0.5px solid ${T.ab}`,borderRadius:8,padding:"0.9rem",marginBottom:"0.85rem"}}>
       <p style={{fontSize:10,letterSpacing:2,color:T.am,textTransform:"uppercase",marginBottom:"0.55rem"}}>{L.settingPlayer}</p>
       <input value={settings.p1} onChange={e=>setSettings(s=>({...s,p1:e.target.value}))} placeholder="Byte" style={{background:T.cb,border:`0.5px solid ${T.ab}`,color:T.tx,padding:"5px 9px",borderRadius:4,fontSize:13,fontFamily:"Georgia,serif",outline:"none",width:"100%",boxSizing:"border-box",marginBottom:8}}/>
-      <p style={{fontSize:10,letterSpacing:2,color:T.am,textTransform:"uppercase",marginBottom:"0.4rem"}}>{L.settingFont}</p>
-      <div style={{display:"flex",alignItems:"center",gap:10}}>
-        <span style={{fontSize:11,color:T.mt}}>A</span>
-        <input type="range" min="85" max="130" value={Math.round((settings.fontSize||1)*100)} onChange={e=>setSettings(s=>({...s,fontSize:parseInt(e.target.value)/100}))} style={{flex:1}}/>
-        <span style={{fontSize:13,color:T.mt}}>A</span>
-        <span style={{fontSize:11,color:T.am,minWidth:32}}>{Math.round((settings.fontSize||1)*100)}%</span>
-      </div>
+
     </div>
     <div style={{display:"flex",flexWrap:"wrap",gap:8,justifyContent:"center"}}>
       <NBtn onClick={onStart} T={T}>{L.playSolo}</NBtn>
@@ -1334,9 +1328,7 @@ export default function App(){
 
   const afterBug=()=>{go("sandbox");};
   const showHeader=!["intro","multi-setup","end","profile","leaderboard","achievements","map","playerswitch","review"].includes(phase);
-  const fs=settings.fontSize||1;
-
-  return(<div style={{padding:"0.75rem 0",fontSize:`${fs}rem`}}>
+  return(<div style={{padding:"0.75rem 0"}}>
     <style>{`
       @keyframes sceneIn{from{opacity:0;transform:translateY(8px) scale(0.99)}to{opacity:1;transform:translateY(0) scale(1)}}
       @keyframes sceneOut{from{opacity:1;transform:scale(1)}to{opacity:0;transform:scale(0.98)}}
