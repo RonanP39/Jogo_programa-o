@@ -1353,6 +1353,7 @@ export default function App(){
           <StreakBadge streak={streak} T={T} L={L}/>
           <div style={{marginLeft:"auto",display:"flex",gap:5}}>
             {[["ti-map","map"],["ti-award","achievements"],["ti-trophy","leaderboard"]].map(([ic,ph])=>(<button key={ph} onClick={()=>go(ph)} style={{background:"transparent",border:`0.5px solid ${T.ab}`,color:T.mt,width:26,height:26,borderRadius:4,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><i className={`ti ${ic}`} style={{fontSize:13}} aria-hidden="true"/></button>))}
+            <button onClick={()=>{if(window.confirm(lang==="en"?"Restart the game? Your current progress will be lost.":"Reiniciar o jogo? O progresso atual será perdido.")){try{localStorage.removeItem("tdc_save");}catch{}setPhase("intro");setIdx(0);setLearned([]);setErrors([]);setChoiceIdx(null);setPlayers(initPlayers());setCurrentP(0);setHintShown(false);setGlossary(false);setPendingBoss(null);setAnimKey(k=>k+1);}}} title={lang==="en"?"Restart":"Reiniciar"} style={{background:"transparent",border:`0.5px solid ${T.ab}`,color:T.mt,width:26,height:26,borderRadius:4,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><i className="ti ti-refresh" style={{fontSize:13}} aria-hidden="true"/></button>
           </div>
         </div>
         <XPBar xpData={xpData} lang={lang} T={T} L={L}/>
