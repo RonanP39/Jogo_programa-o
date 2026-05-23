@@ -1,4 +1,21 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
+
+class ErrorBoundary extends React.Component {
+  constructor(props){super(props);this.state={error:null};}
+  static getDerivedStateFromError(e){return{error:e};}
+  render(){
+    if(this.state.error){
+      return(<div style={{padding:"2rem",fontFamily:"monospace",color:"#E24B4A",background:"#1a1810",minHeight:"100vh"}}>
+        <h2 style={{color:"#EF9F27"}}>Erro detectado</h2>
+        <pre style={{whiteSpace:"pre-wrap",fontSize:12,color:"#f4a0a0"}}>{this.state.error.toString()}</pre>
+        <pre style={{whiteSpace:"pre-wrap",fontSize:11,color:"rgba(224,212,180,.5)"}}>{this.state.error.stack}</pre>
+        <button onClick={()=>this.setState({error:null})} style={{marginTop:"1rem",background:"transparent",border:"1px solid #EF9F27",color:"#EF9F27",padding:"8px 16px",cursor:"pointer",borderRadius:6}}>Tentar de novo</button>
+      </div>);
+    }
+    return this.props.children;
+  }
+}
+
 
 const TH={
   dark:{bg:"#1a1810",sf:"#22201a",cb:"#0e0b07",am:"#EF9F27",al:"rgba(239,159,39,.1)",ab:"rgba(239,159,39,.22)",tx:"#e0d4b4",mt:"rgba(224,212,180,.45)",gn:"#5DCAA5",cr:"#D85A30"},
@@ -1587,16 +1604,93 @@ function ConceptCard({scene,language,lang,T,L,onNext}){
     <NBtn onClick={onNext} T={T}>{L.conceptNext}</NBtn>
   </div>);}
 
-// ── QUIZ ──────────────────────────────────────────────────────
+// ── QUIZ (AI-GENERATED DYNAMIC QUESTIONS) ────────────────────
+async function generateQuizQuestion(scene, lang, attempt) {
+  const nm = lang==="en"?(scene.concept?.nmEn||scene.concept?.nm||scene.id):scene.concept?.nm||scene.id;
+  const sm = lang==="en"?(scene.concept?.sumEn||scene.concept?.sum||""):scene.concept?.sum||"";
+  const seed = Math.floor(Math.random()*10000);
+  const prompt = lang==="en"
+    ? `Generate ONE multiple choice question about "${nm}" (${sm}). Seed: ${seed} — make it DIFFERENT each time, vary difficulty and angle. Return ONLY valid JSON (no markdown): {"q":"question text","opts":["A","B","C"],"ok":0} where ok is the index of the correct answer. Question must test understanding, not just memorization.`
+    : `Gere UMA pergunta de múltipla escolha sobre "${nm}" (${sm}). Semente: ${seed} — faça DIFERENTE a cada vez, varie dificuldade e ângulo. Retorne SOMENTE JSON válido (sem markdown): {"q":"texto da pergunta","opts":["A","B","C"],"ok":0} onde ok é o índice da resposta correta. A pergunta deve testar compreensão, não só memorização.`;
+  const resp = await fetch("https://api.anthropic.com/v1/messages",{
+    method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:300,
+      messages:[{role:"user",content:prompt}]})
+  });
+  const data = await resp.json();
+  const text = data.content?.find(b=>b.type==="text")?.text||"";
+  const clean = text.replace(/```json?|```/g,"").trim();
+  const parsed = JSON.parse(clean);
+  if(!parsed.q||!Array.isArray(parsed.opts)||parsed.opts.length<3||parsed.ok===undefined) throw new Error("bad format");
+  return parsed;
+}
+
 function Quiz({scene,lang,isLast,T,L,onSubmit}){
+  const cacheKey = `quiz_${scene.id}_${lang}`;
+  const[loading,setLoading]=useState(false);
+  const[questions,setQuestions]=useState([]);
+  const[qIdx,setQIdx]=useState(0);
   const[sel,setSel]=useState(null);const[rev,setRev]=useState(false);
-  const q=lang==="en"?(scene.quiz.qEn||scene.quiz.q):scene.quiz.q;
-  const opts=lang==="en"?(scene.quiz.optsEn||scene.quiz.opts):scene.quiz.opts;const ok=sel===scene.quiz.ok;
+  const[correct,setCorrect]=useState(0);const[error,setError]=useState(false);
+
+  // Generate a fresh batch of 3 questions on mount
+  useEffect(()=>{
+    let cancelled=false;
+    const fallback={q:lang==="en"?(scene.quiz.qEn||scene.quiz.q):scene.quiz.q,opts:lang==="en"?(scene.quiz.optsEn||scene.quiz.opts):scene.quiz.opts,ok:scene.quiz.ok};
+    setLoading(true);
+    Promise.all([generateQuizQuestion(scene,lang,0),generateQuizQuestion(scene,lang,1),generateQuizQuestion(scene,lang,2)])
+      .then(qs=>{if(!cancelled){setQuestions(qs);setLoading(false);}})
+      .catch(()=>{if(!cancelled){setQuestions([fallback,fallback,fallback]);setLoading(false);setError(true);}});
+    return()=>{cancelled=true;};
+  },[scene.id]);
+
+  if(loading||!questions.length) return(
+    <div style={{padding:"2rem 0",textAlign:"center"}}>
+      <i className="ti ti-brain" style={{fontSize:28,color:T.am,display:"block",marginBottom:"0.75rem",animation:"spin 1.2s linear infinite"}} aria-hidden="true"/>
+      <p style={{fontSize:13,color:T.mt,fontFamily:"Georgia,serif"}}>{lang==="en"?"Generating unique questions...":"Gerando perguntas únicas..."}</p>
+      <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
+    </div>);
+
+  const q=questions[qIdx];const ok=sel===q.ok;
+  const totalQ=questions.length;
+
+  const handleNext=()=>{
+    const wasOk=sel===q.ok;
+    if(wasOk)setCorrect(c=>c+1);
+    if(qIdx<totalQ-1){setQIdx(i=>i+1);setSel(null);setRev(false);}
+    else{onSubmit(wasOk?q.ok:99,{correct:correct+(wasOk?1:0),total:totalQ});}
+  };
+
   return(<div>
-    <p style={{fontSize:10,letterSpacing:3,color:T.am,textTransform:"uppercase",marginBottom:"0.5rem"}}><i className="ti ti-help-circle" style={{fontSize:13,marginRight:6,verticalAlign:"-1px"}} aria-hidden="true"/>{L.quizTitle}</p>
-    <p style={{fontSize:"0.96rem",color:T.tx,marginBottom:"1.25rem",fontFamily:"Georgia,serif",lineHeight:1.7}}>{q}</p>
-    <div style={{display:"flex",flexDirection:"column",gap:"0.6rem",marginBottom:"1rem"}}>{opts.map((opt,i)=>{let bd=T.ab,bg="transparent",tc=T.tx;if(rev){if(i===scene.quiz.ok){bd="rgba(93,202,165,.5)";bg="rgba(93,202,165,.08)";tc=T.gn;}else if(i===sel){bd="rgba(216,90,48,.5)";bg="rgba(216,90,48,.08)";tc=T.cr;}}else if(i===sel){bd=T.am;bg=T.al;}return(<button key={i} onClick={()=>!rev&&setSel(i)} style={{background:bg,border:`0.5px solid ${bd}`,color:tc,padding:"0.75rem 1rem",textAlign:"left",cursor:rev?"default":"pointer",borderRadius:8,fontSize:"0.9rem",fontFamily:"Georgia,serif",lineHeight:1.5,transition:"all 0.2s"}}>{rev&&i===scene.quiz.ok&&<i className="ti ti-check" style={{fontSize:12,marginRight:8,color:T.gn}} aria-hidden="true"/>}{rev&&i===sel&&i!==scene.quiz.ok&&<i className="ti ti-x" style={{fontSize:12,marginRight:8,color:T.cr}} aria-hidden="true"/>}{opt}</button>);})}</div>
-    {!rev?(<NBtn onClick={()=>sel!==null&&setRev(true)} disabled={sel===null} T={T}>{L.quizCheck}</NBtn>):(<div><p style={{fontSize:"0.88rem",color:ok?T.gn:T.mt,marginBottom:"1rem",fontFamily:"Georgia,serif"}}>{ok?L.quizRight:L.quizWrong}</p><NBtn onClick={()=>onSubmit(sel)} T={T}>{isLast?L.quizFinal:L.quizNextCh}</NBtn></div>)}
+    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"0.5rem"}}>
+      <p style={{fontSize:10,letterSpacing:3,color:T.am,textTransform:"uppercase",margin:0}}><i className="ti ti-help-circle" style={{fontSize:13,marginRight:6,verticalAlign:"-1px"}} aria-hidden="true"/>{L.quizTitle}</p>
+      <div style={{display:"flex",gap:5}}>{questions.map((_,i)=>(<div key={i} style={{width:8,height:8,borderRadius:"50%",background:i<qIdx?"rgba(93,202,165,.6)":i===qIdx?T.am:T.ab,transition:"background 0.3s"}}/>))}</div>
+    </div>
+    <div style={{display:"flex",alignItems:"baseline",gap:6,marginBottom:"1.25rem"}}>
+      <span style={{fontSize:11,color:T.mt,flexShrink:0}}>{qIdx+1}/{totalQ}</span>
+      <p style={{fontSize:"0.96rem",color:T.tx,margin:0,fontFamily:"Georgia,serif",lineHeight:1.7}}>{q.q}</p>
+    </div>
+    <div style={{display:"flex",flexDirection:"column",gap:"0.6rem",marginBottom:"1rem"}}>
+      {q.opts.map((opt,i)=>{
+        let bd=T.ab,bg="transparent",tc=T.tx;
+        if(rev){if(i===q.ok){bd="rgba(93,202,165,.5)";bg="rgba(93,202,165,.08)";tc=T.gn;}else if(i===sel){bd="rgba(216,90,48,.5)";bg="rgba(216,90,48,.08)";tc=T.cr;}}
+        else if(i===sel){bd=T.am;bg=T.al;}
+        return(<button key={i} onClick={()=>!rev&&setSel(i)} style={{background:bg,border:`0.5px solid ${bd}`,color:tc,padding:"0.75rem 1rem",textAlign:"left",cursor:rev?"default":"pointer",borderRadius:8,fontSize:"0.9rem",fontFamily:"Georgia,serif",lineHeight:1.5,transition:"all 0.2s"}}>
+          {rev&&i===q.ok&&<i className="ti ti-check" style={{fontSize:12,marginRight:8,color:T.gn}} aria-hidden="true"/>}
+          {rev&&i===sel&&i!==q.ok&&<i className="ti ti-x" style={{fontSize:12,marginRight:8,color:T.cr}} aria-hidden="true"/>}
+          {opt}
+        </button>);
+      })}
+    </div>
+    {!rev
+      ?<NBtn onClick={()=>sel!==null&&setRev(true)} disabled={sel===null} T={T}>{L.quizCheck}</NBtn>
+      :<div>
+        <p style={{fontSize:"0.88rem",color:ok?T.gn:T.mt,marginBottom:"1rem",fontFamily:"Georgia,serif"}}>{ok?L.quizRight:L.quizWrong}</p>
+        <NBtn onClick={handleNext} T={T}>
+          {qIdx<totalQ-1?(lang==="en"?"Next question →":"Próxima pergunta →"):(isLast?L.quizFinal:L.quizNextCh)}
+        </NBtn>
+      </div>}
+    {error&&<p style={{fontSize:10,color:T.mt,marginTop:"0.5rem",fontFamily:"Georgia,serif"}}>{lang==="en"?"Using fallback questions (offline mode)":"Usando perguntas de fallback (modo offline)"}</p>}
   </div>);}
 
 // ── GLOSSARY ──────────────────────────────────────────────────
@@ -1642,7 +1736,7 @@ function End({players,currentP,mode,T,L,lang,learned,errors,isAllDone,onRestart,
   </div>);}
 
 // ── MAIN APP ──────────────────────────────────────────────────
-export default function App(){
+function AppInner(){
   const[settings,setSettings]=useState(()=>{try{return JSON.parse(localStorage.getItem("tdc_save")||"{}");}catch{return{};}});
   const getSetting=(k,def)=>settings[k]!==undefined?settings[k]:def;
   const theme=getSetting("theme","dark");const difficulty=getSetting("difficulty","iniciante");
@@ -1705,7 +1799,7 @@ export default function App(){
     return()=>document.head.removeChild(style);
   },[]);
 
-  const spawnParticles=useCallback((pts)=>{if(pts<=0)return;const base={x:window.innerWidth/2-30,y:window.innerHeight/2};const newP=Array.from({length:6},(_,i)=>({id:Date.now()+i,x:base.x+Math.random()*60-30,y:base.y+Math.random()*40-20,angle:Math.random()*360}));setParticles(p=>[...p,...newP]);setTimeout(()=>setParticles([]),[],800);},[]);
+  const spawnParticles=useCallback((pts)=>{if(pts<=0)return;const base={x:window.innerWidth/2-30,y:window.innerHeight/2};const newP=Array.from({length:6},(_,i)=>({id:Date.now()+i,x:base.x+Math.random()*60-30,y:base.y+Math.random()*40-20,angle:Math.random()*360}));setParticles(p=>[...p,...newP]);setTimeout(()=>setParticles([]),800);},[]);
 
   const addGems=useCallback((n)=>{setGems(g=>{const ng=g+n;try{localStorage.setItem("tdc_gems",String(ng));}catch{}return ng;});},[]);
   const spendGems=useCallback((n)=>{setGems(g=>{const ng=Math.max(0,g-n);try{localStorage.setItem("tdc_gems",String(ng));}catch{}return ng;});},[]);
@@ -1804,9 +1898,13 @@ export default function App(){
     setSubPhase("chosen");
   };
 
-  const handleQuizSubmit=(sel)=>{
-    const scene=getScene();const ok=sel===scene.quiz.ok;
-    if(ok){addScore(isTournament?10:5);if(!quizWrong.length)achieve("flawless");setBytState({msg:bytMsg("correct",lang),mood:"correct"});}
+  const handleQuizSubmit=(sel,stats)=>{
+    const scene=getScene();
+    // stats can be {correct, total} from dynamic quiz, or undefined for fallback
+    const totalCorrect=stats?.correct??( sel===scene.quiz.ok?1:0 );
+    const totalQ=stats?.total??1;
+    const ok=totalCorrect>0;
+    if(ok){addScore(isTournament?(totalCorrect*10):(totalCorrect*5));if(!quizWrong.length&&totalCorrect===totalQ)achieve("flawless");setBytState({msg:bytMsg("correct",lang),mood:"correct"});}
     else{setQuizWrong(w=>[...w,{...scene,chosen:sel}]);loseHeart();setBytState({msg:bytMsg("wrong",lang),mood:"wrong"});}
     if(!bonusQuizDone&&BONUS_QUIZ[scene.id]?.length){setSubPhase("bonus-quiz");}
     else{afterQuiz(scene,ok);}
@@ -1939,4 +2037,6 @@ export default function App(){
       {achToast&&<AchToast ach={achToast} T={T} onClose={()=>setAchToast(null)}/>}
     </div>
   );
+
 }
+export default function App(){return(<ErrorBoundary><AppInner/></ErrorBoundary>);}
