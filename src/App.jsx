@@ -135,6 +135,291 @@ function mkAudio(){try{const c=new(window.AudioContext||window.webkitAudioContex
 function S(sc,f,lg){const ef=f+"En";return(lg==="en"&&sc[ef])?sc[ef]:sc[f];}
 function SC(c,f,lg){const ef=f+"En";return(lg==="en"&&c[ef])?c[ef]:c[f];}
 
+// ══════════════════════════════════════════════════
+// v7 — DUOLINGO MODE: corações, trilha, ligas, gemas, meta diária, mascote Byt
+// ══════════════════════════════════════════════════
+
+const LEAGUES=[
+  {id:"bronze",  ptName:"Bronze",   enName:"Bronze",   icon:"ti-medal",     color:"#B87333",minXP:0,   maxXP:149},
+  {id:"silver",  ptName:"Prata",    enName:"Silver",   icon:"ti-medal-2",   color:"#A0A0A0",minXP:150, maxXP:399},
+  {id:"gold",    ptName:"Ouro",     enName:"Gold",     icon:"ti-medal",     color:"#EF9F27",minXP:400, maxXP:749},
+  {id:"diamond", ptName:"Diamante", enName:"Diamond",  icon:"ti-diamond",   color:"#5DCAA5",minXP:750, maxXP:1199},
+  {id:"sapphire",ptName:"Safira",   enName:"Sapphire", icon:"ti-hexagon",   color:"#378ADD",minXP:1200,maxXP:1999},
+  {id:"ruby",    ptName:"Rubi",     enName:"Ruby",     icon:"ti-flame",     color:"#E24B4A",minXP:2000,maxXP:Infinity},
+];
+function getLeague(xp){return LEAGUES.reduce((a,l)=>xp>=l.minXP?l:a,LEAGUES[0]);}
+
+const DAILY_GOALS=[
+  {id:"casual",  pts:10,ptLabel:"Casual",    enLabel:"Casual"},
+  {id:"regular", pts:20,ptLabel:"Regular",   enLabel:"Regular"},
+  {id:"intense", pts:30,ptLabel:"Intenso",   enLabel:"Intense"},
+];
+
+const BYT_MSGS={
+  correct:  {pt:["Excelente! 🎉","Isso!","Você arrasou!","Byt aprova! ✓","Continue assim!"],
+             en:["Excellent! 🎉","Yes!","You crushed it!","Byt approves! ✓","Keep it up!"]},
+  wrong:    {pt:["Ops! Tente de novo","Quase...","Errou, mas aprende!","Não desanime!"],
+             en:["Oops! Try again","Almost...","Wrong, but you learn!","Don't give up!"]},
+  boss:     {pt:["Um boss! Cuidado!","Hora de brilhar!","Mostre seu poder!"],
+             en:["A boss! Be careful!","Time to shine!","Show your power!"]},
+  streak:   {pt:["Streak incrível! 🔥","Imparável!","Lendário!"],
+             en:["Amazing streak! 🔥","Unstoppable!","Legendary!"]},
+  start:    {pt:["Bora codar!","Vamos aprender!","Pronto pra aventura?"],
+             en:["Let's code!","Time to learn!","Ready for adventure?"]},
+  nohearts: {pt:["Sem vidas! Use gemas...","Precisas de vidas!","Recarregue para continuar!"],
+             en:["No lives! Use gems...","You need lives!","Recharge to continue!"]},
+  gems:     {pt:["Gemas gastas!","Vida restaurada!"],en:["Gems spent!","Life restored!"]},
+  dailydone:{pt:["Meta do dia atingida! ⭐","Dia perfeito!"],en:["Daily goal reached! ⭐","Perfect day!"]},
+};
+function bytMsg(key,lang){const arr=BYT_MSGS[key]?.[lang==="en"?"en":"pt"]||["..."];return arr[Math.floor(Math.random()*arr.length)];}
+
+// ── MASCOT BYT ────────────────────────────────────────────────
+function BytMascot({msg,mood,T,onClose}){
+  const[visible,setVisible]=useState(true);
+  useEffect(()=>{const t=setTimeout(()=>{setVisible(false);if(onClose)onClose();},2800);return()=>clearTimeout(t);},[msg]);
+  if(!visible)return null;
+  const moodEmoji={correct:"(✿◕‿◕)",wrong:"(╥_╥)",boss:"(⌐■_■)",streak:"(★‿★)",start:"(◕‿◕)"}[mood]||"(·‿·)";
+  const moodColor={correct:"rgba(93,202,165,.2)",wrong:"rgba(216,90,48,.12)",boss:"rgba(216,90,48,.12)",streak:"rgba(239,159,39,.15)",start:T.al}[mood]||T.al;
+  const moodBorder={correct:"rgba(93,202,165,.45)",wrong:"rgba(216,90,48,.35)",boss:"rgba(216,90,48,.4)",streak:"rgba(239,159,39,.5)",start:T.ab}[mood]||T.ab;
+  return(
+    <div style={{display:"flex",alignItems:"flex-end",gap:8,marginBottom:"1rem",animation:"slideUp 0.3s ease"}}>
+      <div style={{fontSize:22,lineHeight:1,flexShrink:0,animation:mood==="correct"?"bytBounce 0.6s ease":undefined}}>{moodEmoji}</div>
+      <div style={{background:moodColor,border:`0.5px solid ${moodBorder}`,borderRadius:"12px 12px 12px 3px",padding:"6px 12px",fontSize:12,color:T.tx,fontFamily:"Georgia,serif",maxWidth:220,lineHeight:1.5}}>
+        <span style={{fontWeight:500,color:T.am,fontSize:10,display:"block",marginBottom:2}}>Byt</span>
+        {msg}
+      </div>
+    </div>
+  );
+}
+
+// ── HEARTS + GEMS DISPLAY ─────────────────────────────────────
+function HeartsDisplay({hearts,maxHearts,T}){
+  return(
+    <div style={{display:"flex",gap:3,alignItems:"center"}}>
+      {Array.from({length:maxHearts},(_,i)=>(
+        <i key={i} className="ti ti-heart" style={{fontSize:16,color:i<hearts?"#E24B4A":"rgba(224,212,180,.2)",transition:"color 0.4s"}} aria-hidden="true"/>
+      ))}
+    </div>
+  );
+}
+function GemsDisplay({gems,T}){
+  return(
+    <div style={{display:"flex",alignItems:"center",gap:4,background:"rgba(93,202,165,.1)",border:"0.5px solid rgba(93,202,165,.3)",borderRadius:20,padding:"2px 8px"}}>
+      <i className="ti ti-diamond" style={{fontSize:12,color:"#5DCAA5"}} aria-hidden="true"/>
+      <span style={{fontSize:12,fontWeight:500,color:"#5DCAA5"}}>{gems}</span>
+    </div>
+  );
+}
+
+// ── LEAGUE BADGE ──────────────────────────────────────────────
+function LeagueBadge({xp,lang,onClick,T}){
+  const lg=getLeague(xp);
+  return(
+    <button onClick={onClick} style={{background:`rgba(239,159,39,.08)`,border:`0.5px solid rgba(239,159,39,.25)`,borderRadius:20,padding:"2px 9px",cursor:"pointer",display:"flex",alignItems:"center",gap:4}}>
+      <i className={`ti ${lg.icon}`} style={{fontSize:12,color:lg.color}} aria-hidden="true"/>
+      <span style={{fontSize:11,fontWeight:500,color:lg.color}}>{lang==="en"?lg.enName:lg.ptName}</span>
+    </button>
+  );
+}
+
+// ── DAILY GOAL BAR ────────────────────────────────────────────
+function DailyGoalBar({dailyXP,dailyGoalPts,lang,T,L}){
+  const pct=Math.min(100,Math.round((dailyXP/dailyGoalPts)*100));const done=pct>=100;
+  return(
+    <div style={{marginBottom:6}}>
+      <div style={{display:"flex",justifyContent:"space-between",marginBottom:2}}>
+        <span style={{fontSize:10,color:done?"#5DCAA5":T.mt,display:"flex",alignItems:"center",gap:4}}>
+          <i className="ti ti-target" style={{fontSize:10}} aria-hidden="true"/>
+          {lang==="en"?"Daily goal":"Meta diária"}
+          {done&&<i className="ti ti-check" style={{fontSize:10,color:"#5DCAA5"}} aria-hidden="true"/>}
+        </span>
+        <span style={{fontSize:10,color:done?"#5DCAA5":T.mt}}>{Math.min(dailyXP,dailyGoalPts)}/{dailyGoalPts} XP</span>
+      </div>
+      <div style={{height:4,background:T.al,borderRadius:99,overflow:"hidden"}}>
+        <div style={{width:`${pct}%`,height:"100%",background:done?"#5DCAA5":T.am,borderRadius:99,transition:"width 0.8s ease"}}/>
+      </div>
+    </div>
+  );
+}
+
+// ── HEART LOST MODAL ──────────────────────────────────────────
+function HeartLostModal({hearts,maxHearts,gems,onGemRefill,onContinue,lang,T,L}){
+  const noHearts=hearts===0;
+  return(
+    <div style={{minHeight:340,background:"rgba(0,0,0,0.55)",display:"flex",alignItems:"center",justifyContent:"center",borderRadius:12,marginBottom:"1rem"}}>
+      <div style={{background:T.sf,border:`0.5px solid rgba(216,90,48,.4)`,borderRadius:12,padding:"2rem",textAlign:"center",maxWidth:280}}>
+        <div style={{fontSize:36,marginBottom:"0.75rem"}}>{noHearts?"💀":"❤️"}</div>
+        <p style={{fontSize:10,letterSpacing:3,color:"#E24B4A",textTransform:"uppercase",marginBottom:"0.5rem"}}>{noHearts?(lang==="en"?"Game over":"Sem vidas!"):(lang==="en"?"Oops!":"Ops!")}</p>
+        <p style={{fontSize:"1rem",color:T.tx,marginBottom:"0.5rem",fontFamily:"Georgia,serif"}}>{noHearts?(lang==="en"?"You're out of hearts":"Você ficou sem corações!"):(lang==="en"?"Wrong answer — lost a heart":"Resposta errada — perdeu um coração!")}</p>
+        <div style={{marginBottom:"1.25rem"}}><HeartsDisplay hearts={hearts} maxHearts={maxHearts} T={T}/></div>
+        {gems>=10&&<div style={{marginBottom:"0.75rem"}}>
+          <p style={{fontSize:12,color:T.mt,marginBottom:"0.5rem"}}>{lang==="en"?`Refill 1 heart for 10 gems (${gems} available)`:`Refazer 1 coração por 10 gemas (${gems} disponíveis)`}</p>
+          <NBtn onClick={onGemRefill} T={T}><i className="ti ti-diamond" style={{fontSize:12,marginRight:5}} aria-hidden="true"/>10 {lang==="en"?"gems → +1 heart":"gemas → +1 coração"}</NBtn>
+        </div>}
+        {(!noHearts||gems>=10)&&<button onClick={onContinue} style={{background:"transparent",border:"none",color:T.mt,cursor:"pointer",fontSize:12,fontFamily:"Georgia,serif",display:"block",margin:"0.5rem auto 0"}}>{lang==="en"?"Continue anyway →":"Continuar assim →"}</button>}
+        {noHearts&&gems<10&&<p style={{fontSize:12,color:T.mt,fontFamily:"Georgia,serif",marginTop:"0.5rem"}}>{lang==="en"?"Come back in 4 hours or earn more gems!":"Volte em 4 horas ou ganhe mais gemas!"}</p>}
+      </div>
+    </div>
+  );
+}
+
+// ── GEM SHOP ──────────────────────────────────────────────────
+function GemShop({gems,hearts,maxHearts,lang,T,onBuy,onClose}){
+  const items=[
+    {id:"heart1",icon:"ti-heart",cost:10,ptLabel:"Refazer 1 coração",enLabel:"Refill 1 heart",available:hearts<maxHearts},
+    {id:"heart5",icon:"ti-heart",cost:40,ptLabel:"Refazer todos os corações",enLabel:"Refill all hearts",available:hearts<maxHearts},
+    {id:"timer",icon:"ti-clock-off",cost:15,ptLabel:"Pular timer (próximo boss)",enLabel:"Skip timer (next boss)",available:true},
+    {id:"hint",icon:"ti-bulb",cost:5,ptLabel:"Dica grátis (próxima lição)",enLabel:"Free hint (next lesson)",available:true},
+  ];
+  return(<div>
+    <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:"1.25rem"}}>
+      <button onClick={onClose} style={{background:"transparent",border:"none",color:"rgba(224,212,180,.45)",cursor:"pointer",fontSize:13,fontFamily:"Georgia,serif"}}><i className="ti ti-arrow-left" style={{fontSize:13,marginRight:6}} aria-hidden="true"/>Voltar</button>
+      <p style={{fontSize:10,letterSpacing:3,color:"#5DCAA5",textTransform:"uppercase",margin:0}}>Loja de Gemas</p>
+      <div style={{marginLeft:"auto"}}><GemsDisplay gems={gems} T={T}/></div>
+    </div>
+    <div style={{display:"flex",flexDirection:"column",gap:8}}>
+      {items.map(item=>{const canBuy=gems>=item.cost&&item.available;return(<div key={item.id} style={{background:T.sf,border:`0.5px solid ${T.ab}`,borderRadius:10,padding:"0.9rem 1.1rem",display:"flex",alignItems:"center",gap:12,opacity:canBuy?1:0.5}}>
+        <i className={`ti ${item.icon}`} style={{fontSize:22,color:"#5DCAA5",flexShrink:0}} aria-hidden="true"/>
+        <div style={{flex:1}}>
+          <div style={{fontSize:13,color:T.tx,fontFamily:"Georgia,serif"}}>{lang==="en"?item.enLabel:item.ptLabel}</div>
+          <div style={{display:"flex",alignItems:"center",gap:4,marginTop:3}}>
+            <i className="ti ti-diamond" style={{fontSize:11,color:"#5DCAA5"}} aria-hidden="true"/>
+            <span style={{fontSize:11,color:"#5DCAA5",fontWeight:500}}>{item.cost} gemas</span>
+          </div>
+        </div>
+        <button onClick={()=>canBuy&&onBuy(item)} disabled={!canBuy} style={{background:canBuy?"rgba(93,202,165,.12)":"transparent",border:`0.5px solid ${canBuy?"rgba(93,202,165,.45)":T.ab}`,color:canBuy?"#5DCAA5":"rgba(224,212,180,.3)",padding:"5px 14px",borderRadius:6,cursor:canBuy?"pointer":"default",fontSize:12,fontFamily:"Georgia,serif"}}>{lang==="en"?"Buy":"Comprar"}</button>
+      </div>);})}
+    </div>
+  </div>);}
+
+// ── SKILL PATH (main screen replacement) ─────────────────────
+function SkillPath({scenes,inventory,sceneIdx,lang,T,L,onPickScene,onStartLesson,dailyXP,dailyGoalPts,hearts,maxHearts,gems,weeklyXP,streak,xpData,settings,setSettings,onMulti,onTournament,onLeagues,onGemShop}){
+  const[showSettings,setShowSettings]=useState(false);
+  const done=inventory.map(i=>i.id);
+  // zigzag offsets
+  const zigzag=[0,40,-20,20,-40,0,40,-20,20,-40,0,40,-20,20,-40,0,40,-20,20,-40,0,40];
+  const lg=getLeague(weeklyXP);const xpTitle=lang==="en"?xpData.enTi:xpData.ptTi;
+  return(<div>
+    {/* TOP BAR */}
+    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"0.75rem"}}>
+      <div style={{display:"flex",alignItems:"center",gap:8}}>
+        <span style={{fontSize:13,fontWeight:500,color:"#D85A30",display:"flex",alignItems:"center",gap:4}}><i className="ti ti-flame" style={{fontSize:16,color:"#D85A30"}} aria-hidden="true"/>{streak}</span>
+        <LeagueBadge xp={weeklyXP} lang={lang} onClick={onLeagues} T={T}/>
+      </div>
+      <div style={{display:"flex",alignItems:"center",gap:8}}>
+        <button onClick={onGemShop} style={{background:"transparent",border:"none",cursor:"pointer",padding:0}}><GemsDisplay gems={gems} T={T}/></button>
+        <HeartsDisplay hearts={hearts} maxHearts={maxHearts} T={T}/>
+        <button onClick={()=>setShowSettings(s=>!s)} style={{background:"transparent",border:"none",color:"rgba(224,212,180,.45)",cursor:"pointer",fontSize:14,padding:"2px 4px"}}><i className="ti ti-settings" style={{fontSize:16}} aria-hidden="true"/></button>
+      </div>
+    </div>
+
+    {/* DAILY GOAL */}
+    <DailyGoalBar dailyXP={dailyXP} dailyGoalPts={dailyGoalPts} lang={lang} T={T} L={L}/>
+
+    {/* SETTINGS PANEL */}
+    {showSettings&&<div style={{background:T.sf,border:`0.5px solid ${T.ab}`,borderRadius:10,padding:"1rem",marginBottom:"1rem"}}>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:8,marginBottom:"0.75rem"}}>
+        {[["theme",[["dark","Grimório"],["light","Pergaminho"],["cyber","Neon"]]],
+          ["language",[["py","Python"],["js","JavaScript"],["both","Ambas"]]],
+          ["career",[["all","Todos"],["frontend","Front"],["backend","Back"],["data","Data"]]],
+        ].map(([key,opts])=>(<div key={key}>
+          <p style={{fontSize:9,letterSpacing:2,color:T.am,textTransform:"uppercase",marginBottom:4}}>{key}</p>
+          <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>{opts.map(([v,l])=>(<button key={v} onClick={()=>setSettings(s=>({...s,[key]:v}))} style={{background:settings[key]===v?T.al:"transparent",border:`0.5px solid ${settings[key]===v?T.am:T.ab}`,color:settings[key]===v?T.am:T.mt,padding:"3px 8px",borderRadius:4,cursor:"pointer",fontSize:10,fontFamily:"Georgia,serif"}}>{settings[key]===v?"✓ ":""}{l}</button>))}</div>
+        </div>))}
+      </div>
+      <div style={{marginBottom:"0.75rem"}}>
+        <p style={{fontSize:9,letterSpacing:2,color:T.am,textTransform:"uppercase",marginBottom:4}}>Meta diária</p>
+        <div style={{display:"flex",gap:4}}>{DAILY_GOALS.map(g=>(<button key={g.id} onClick={()=>setSettings(s=>({...s,dailyGoal:g.id}))} style={{background:settings.dailyGoal===g.id?T.al:"transparent",border:`0.5px solid ${settings.dailyGoal===g.id?T.am:T.ab}`,color:settings.dailyGoal===g.id?T.am:T.mt,padding:"3px 8px",borderRadius:4,cursor:"pointer",fontSize:10,fontFamily:"Georgia,serif"}}>{settings.dailyGoal===g.id?"✓ ":""}{lang==="en"?g.enLabel:g.ptLabel} ({g.pts})</button>))}</div>
+      </div>
+      <div style={{marginBottom:"0.5rem"}}>
+        <p style={{fontSize:9,letterSpacing:2,color:T.am,textTransform:"uppercase",marginBottom:4}}>Nome</p>
+        <input value={settings.p1||""} onChange={e=>setSettings(s=>({...s,p1:e.target.value}))} placeholder="Byte" style={{background:T.cb,border:`0.5px solid ${T.ab}`,color:T.tx,padding:"4px 8px",borderRadius:4,fontSize:12,fontFamily:"Georgia,serif",outline:"none",width:"100%",boxSizing:"border-box"}}/>
+      </div>
+      <div style={{display:"flex",gap:8,justifyContent:"space-between"}}>
+        {[["pt","🇧🇷 PT"],["en","🇺🇸 EN"]].map(([v,l])=>(<button key={v} onClick={()=>setSettings(s=>({...s,lang:v}))} style={{background:settings.lang===v?T.al:"transparent",border:`0.5px solid ${settings.lang===v?T.am:T.ab}`,color:settings.lang===v?T.am:T.mt,padding:"4px 12px",borderRadius:20,cursor:"pointer",fontSize:12,fontFamily:"Georgia,serif"}}>{l}</button>))}
+      </div>
+    </div>}
+
+    {/* TITLE + BYT */}
+    <div style={{textAlign:"center",marginBottom:"1rem"}}>
+      <div style={{fontSize:28,marginBottom:4}}>⚔️</div>
+      <h1 style={{fontSize:"1.5rem",fontWeight:"normal",color:T.tx,margin:"0 0 2px",letterSpacing:"1.5px",fontFamily:"Georgia,serif"}}>{lang==="en"?"Lands of Code":"Terras do Código"}</h1>
+      <p style={{fontSize:11,color:T.mt,fontFamily:"Georgia,serif",margin:"0 0 4px"}}>{lang==="en"?`Level ${xpData.lvl} · ${xpData.xp} XP`:`Nível ${xpData.lvl} · ${xpData.xp} XP`}</p>
+    </div>
+
+    {/* SKILL PATH NODES */}
+    <div style={{padding:"0 1rem 1rem",position:"relative"}}>
+      {scenes.map((sc,i)=>{
+        const isDone=done.includes(sc.id);const isActive=i===sceneIdx;const isLocked=i>sceneIdx&&!isDone;
+        const isBossAfter=BOSSES.some(b=>b.afterIdx===i-1);
+        const offset=zigzag[i%zigzag.length]||0;
+        const chLabel=lang==="en"?(sc.chEn||sc.ch):sc.ch;
+        let bg,border,iconColor,cursor;
+        if(isDone){bg="#5DCAA5";border="rgba(29,158,117,.6)";iconColor="white";cursor="pointer";}
+        else if(isActive){bg="#7F77DD";border="rgba(83,74,183,.7)";iconColor="white";cursor="pointer";}
+        else{bg=T.sf;border=T.ab;iconColor="rgba(224,212,180,.3)";cursor="default";}
+        return(<div key={sc.id}>
+          {isBossAfter&&i>0&&<div style={{marginLeft:`calc(50% + ${offset}px - 2px)`,width:4,height:28,background:"rgba(216,90,48,.3)",borderRadius:2,marginBottom:4}}/>}
+          {isBossAfter&&i>0&&<div style={{display:"flex",justifyContent:"center",marginBottom:4}}>
+            <div title="Checkpoint" style={{width:48,height:48,borderRadius:"50%",background:"#E24B4A",border:"3px solid rgba(163,45,45,.7)",display:"flex",alignItems:"center",justifyContent:"center",cursor:"default",marginLeft:offset}}>
+              <i className="ti ti-shield-bolt" style={{fontSize:22,color:"white"}} aria-hidden="true"/>
+            </div>
+          </div>}
+          {i>0&&!isBossAfter&&<div style={{marginLeft:`calc(50% + ${offset}px - 2px)`,width:4,height:22,background:isDone?"rgba(93,202,165,.4)":"rgba(224,212,180,.12)",borderRadius:2,marginBottom:4}}/>}
+          <div style={{display:"flex",justifyContent:"center",marginBottom:6}}>
+            <div style={{marginLeft:offset,display:"flex",flexDirection:"column",alignItems:"center",gap:5}}>
+              <div onClick={()=>!isLocked&&onPickScene(i)} style={{width:58,height:58,borderRadius:"50%",background:bg,border:`3px solid ${border}`,display:"flex",alignItems:"center",justifyContent:"center",cursor,position:"relative",animation:isActive?"nodePulse 2.2s ease-in-out infinite":undefined,transition:"transform 0.2s"}}>
+                <i className={`ti ${isLocked?"ti-lock":sc.icon}`} style={{fontSize:22,color:iconColor}} aria-hidden="true"/>
+                {isDone&&<div style={{position:"absolute",bottom:-2,right:-2,width:16,height:16,borderRadius:"50%",background:"white",display:"flex",alignItems:"center",justifyContent:"center"}}><i className="ti ti-check" style={{fontSize:9,color:"#5DCAA5"}} aria-hidden="true"/></div>}
+              </div>
+              <span style={{fontSize:10,color:isActive?T.am:isDone?"#5DCAA5":"rgba(224,212,180,.4)",textAlign:"center",maxWidth:65,lineHeight:1.3,fontFamily:"Georgia,serif"}}>{chLabel}</span>
+              {isActive&&<NBtn onClick={()=>onStartLesson(i)} T={T} >{lang==="en"?"Start →":"Iniciar →"}</NBtn>}
+            </div>
+          </div>
+        </div>);
+      })}
+    </div>
+
+    {/* BOTTOM ACTION BAR */}
+    <div style={{display:"flex",justifyContent:"center",gap:8,flexWrap:"wrap",marginTop:"0.5rem",paddingBottom:"1rem",borderTop:`0.5px solid ${T.ab}`,paddingTop:"1rem"}}>
+      <button onClick={onMulti} style={{background:"transparent",border:`0.5px solid ${T.ab}`,color:T.mt,padding:"5px 14px",borderRadius:6,cursor:"pointer",fontSize:11,fontFamily:"Georgia,serif",display:"flex",alignItems:"center",gap:4}}><i className="ti ti-users" style={{fontSize:12}} aria-hidden="true"/>Multi</button>
+      <button onClick={onTournament} style={{background:"transparent",border:`0.5px solid ${T.ab}`,color:T.mt,padding:"5px 14px",borderRadius:6,cursor:"pointer",fontSize:11,fontFamily:"Georgia,serif",display:"flex",alignItems:"center",gap:4}}><i className="ti ti-tournament" style={{fontSize:12}} aria-hidden="true"/>Torneio</button>
+      <button onClick={onLeagues} style={{background:"transparent",border:`0.5px solid ${T.ab}`,color:T.mt,padding:"5px 14px",borderRadius:6,cursor:"pointer",fontSize:11,fontFamily:"Georgia,serif",display:"flex",alignItems:"center",gap:4}}><i className="ti ti-medal" style={{fontSize:12}} aria-hidden="true"/>Ligas</button>
+    </div>
+    <style>{`@keyframes nodePulse{0%,100%{box-shadow:0 0 0 0 rgba(127,119,221,.45)}50%{box-shadow:0 0 0 10px rgba(127,119,221,0)}}@keyframes slideUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}@keyframes bytBounce{0%,100%{transform:translateY(0)}40%{transform:translateY(-6px)}}`}</style>
+  </div>);}
+
+// ── LEAGUES SCREEN ────────────────────────────────────────────
+function LeaguesScreen({weeklyXP,lang,T,onBack}){
+  const current=getLeague(weeklyXP);
+  return(<div>
+    <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:"1.25rem"}}>
+      <button onClick={onBack} style={{background:"transparent",border:"none",color:"rgba(224,212,180,.45)",cursor:"pointer",fontSize:13,fontFamily:"Georgia,serif"}}><i className="ti ti-arrow-left" style={{fontSize:13,marginRight:6}} aria-hidden="true"/>{lang==="en"?"Back":"Voltar"}</button>
+      <p style={{fontSize:10,letterSpacing:3,color:"#EF9F27",textTransform:"uppercase",margin:0}}>{lang==="en"?"Leagues":"Ligas"}</p>
+    </div>
+    <div style={{textAlign:"center",marginBottom:"1.5rem"}}>
+      <i className={`ti ${current.icon}`} style={{fontSize:40,color:current.color,display:"block",marginBottom:"0.5rem"}} aria-hidden="true"/>
+      <p style={{fontSize:"1.3rem",color:current.color,fontFamily:"Georgia,serif",marginBottom:"0.25rem"}}>{lang==="en"?"League "+current.enName:"Liga "+current.ptName}</p>
+      <p style={{fontSize:12,color:"rgba(224,212,180,.45)"}}>{weeklyXP} XP {lang==="en"?"this week":"esta semana"}</p>
+    </div>
+    <div style={{display:"flex",flexDirection:"column",gap:6}}>
+      {LEAGUES.map((lg,i)=>{
+        const isCur=lg.id===current.id;const isPast=weeklyXP>=(LEAGUES[i+1]?.minXP||Infinity);
+        return(<div key={lg.id} style={{background:isCur?`${lg.color}18`:T.sf,border:`0.5px solid ${isCur?lg.color:T.ab}`,borderRadius:10,padding:"0.85rem 1.1rem",display:"flex",alignItems:"center",gap:12}}>
+          <i className={`ti ${lg.icon}`} style={{fontSize:22,color:isCur?lg.color:"rgba(224,212,180,.3)",flexShrink:0}} aria-hidden="true"/>
+          <div style={{flex:1}}>
+            <div style={{fontSize:14,fontWeight:isCur?500:400,color:isCur?lg.color:T.tx,fontFamily:"Georgia,serif"}}>{lang==="en"?lg.enName:lg.ptName}</div>
+            <div style={{fontSize:11,color:"rgba(224,212,180,.45)"}}>{lg.minXP}–{lg.maxXP===Infinity?"∞":lg.maxXP} XP</div>
+          </div>
+          {isCur&&<span style={{fontSize:10,background:`${lg.color}20`,color:lg.color,padding:"2px 10px",borderRadius:4}}>← você</span>}
+          {isPast&&!isCur&&<i className="ti ti-check" style={{fontSize:14,color:"#5DCAA5"}} aria-hidden="true"/>}
+        </div>);
+      })}
+    </div>
+  </div>);}
+
+
+
 const SCENES=[
   {id:"taverna",ch:"Cap. 1",chEn:"Ch. 1",icon:"ti-home",portrait:{ic:"ti-wand",cl:"#9F77DD",nm:"Varinha, a elfa",nmEn:"Varinha, the Elf"},mapPos:{x:12,y:55},
    item:{icon:"ti-book",name:"Grande Registro",nameEn:"Great Registry"},
@@ -1397,6 +1682,13 @@ export default function App(){
   const[bonusQuizDone,setBonusQuizDone]=useState(false);
   const[pendingStreakReward,setPendingStreakReward]=useState(null);
   const[musicEnabled,setMusicEnabled]=useState(true);
+  const[hearts,setHearts]=useState(()=>{try{const v=localStorage.getItem("tdc_hearts");const ts=localStorage.getItem("tdc_hearts_ts");if(v&&ts){const el=(Date.now()-parseInt(ts))/3600000;const rec=Math.min(Math.floor(el),5-parseInt(v));return Math.min(5,parseInt(v)+rec);}return 5;}catch{return 5;}});
+  const MAX_HEARTS=5;
+  const[gems,setGems]=useState(()=>{try{return parseInt(localStorage.getItem("tdc_gems")||"0");}catch{return 0;}});
+  const[weeklyXP,setWeeklyXP]=useState(()=>{try{const wk=localStorage.getItem("tdc_weekly_week");const now=new Date();const day=now.getDay();const diff=now.getDate()-day+(day===0?-6:1);const mon=new Date(now.getFullYear(),now.getMonth(),diff);const key=mon.toDateString();if(wk!==key){localStorage.setItem("tdc_weekly_week",key);localStorage.setItem("tdc_weekly_xp","0");return 0;}return parseInt(localStorage.getItem("tdc_weekly_xp")||"0");}catch{return 0;}});
+  const[dailyXP,setDailyXP]=useState(()=>{try{const dk=localStorage.getItem("tdc_daily_date");const now=new Date().toDateString();if(dk!==now){localStorage.setItem("tdc_daily_date",now);localStorage.setItem("tdc_daily_xp","0");return 0;}return parseInt(localStorage.getItem("tdc_daily_xp")||"0");}catch{return 0;}});
+  const[heartLost,setHeartLost]=useState(false);
+  const[bytState,setBytState]=useState(null);
   const[particles,setParticles]=useState([]);
   const[sessionHistory,setSessionHistory]=useState(()=>{try{return JSON.parse(localStorage.getItem("tdc_sessions")||"[]");}catch{return[];}});
 
@@ -1415,7 +1707,15 @@ export default function App(){
 
   const spawnParticles=useCallback((pts)=>{if(pts<=0)return;const base={x:window.innerWidth/2-30,y:window.innerHeight/2};const newP=Array.from({length:6},(_,i)=>({id:Date.now()+i,x:base.x+Math.random()*60-30,y:base.y+Math.random()*40-20,angle:Math.random()*360}));setParticles(p=>[...p,...newP]);setTimeout(()=>setParticles([]),[],800);},[]);
 
-  const addXP=useCallback((amt)=>{setXp(p=>{const nv=p+amt;try{localStorage.setItem("tdc_xp",String(nv));}catch{}return nv;});spawnParticles(amt);},[spawnParticles]);
+  const addGems=useCallback((n)=>{setGems(g=>{const ng=g+n;try{localStorage.setItem("tdc_gems",String(ng));}catch{}return ng;});},[]);
+  const spendGems=useCallback((n)=>{setGems(g=>{const ng=Math.max(0,g-n);try{localStorage.setItem("tdc_gems",String(ng));}catch{}return ng;});},[]);
+  const loseHeart=useCallback(()=>{setHearts(h=>{const nh=Math.max(0,h-1);try{localStorage.setItem("tdc_hearts",String(nh));localStorage.setItem("tdc_hearts_ts",String(Date.now()));}catch{}return nh;});setHeartLost(true);},[]);
+  const addXP=useCallback((amt)=>{
+    setXp(p=>{const nv=p+amt;try{localStorage.setItem("tdc_xp",String(nv));}catch{}return nv;});
+    setWeeklyXP(w=>{const nw=w+amt;try{localStorage.setItem("tdc_weekly_xp",String(nw));}catch{}return nw;});
+    setDailyXP(d=>{const nd=d+amt;try{localStorage.setItem("tdc_daily_xp",String(nd));}catch{}return nd;});
+    spawnParticles(amt);
+  },[spawnParticles]);
   const addScore=useCallback((pts,playerIdx=null)=>{const pi=playerIdx!==null?playerIdx:currentPlayer;setPlayers(p=>{const np=[...p];np[pi]={...np[pi],score:np[pi].score+pts};return np;});if(pts>0){addXP(pts);spawnParticles(pts);}},[ currentPlayer,addXP,spawnParticles]);
 
   const achieve=useCallback((id)=>{if(unlocked.includes(id))return;const idx=ACH_IDS.indexOf(id);if(idx<0)return;setUnlocked(u=>{const nu=[...u,id];try{localStorage.setItem("tdc_ach",JSON.stringify(nu));}catch{}return nu;});const nm=L.ach[idx]||{nm:id,desc:""};setAchToast({icon:ACH_ICONS[idx],nm:nm.nm,desc:nm.desc});setTimeout(()=>setAchToast(null),3500);},[unlocked,L]);
@@ -1499,14 +1799,15 @@ export default function App(){
   const handleChoice=(idx)=>{
     const scene=getScene();const choice=scene.choices[idx];
     setChoiceIdx(idx);
-    if(choice.good){addScore(10);achieve("first_good");}
+    if(choice.good){addScore(10);achieve("first_good");setBytState({msg:bytMsg("correct",lang),mood:"correct"});}
+    else{loseHeart();setBytState({msg:bytMsg("wrong",lang),mood:"wrong"});}
     setSubPhase("chosen");
   };
 
   const handleQuizSubmit=(sel)=>{
     const scene=getScene();const ok=sel===scene.quiz.ok;
-    if(ok){addScore(isTournament?10:5);if(!quizWrong.length)achieve("flawless");}
-    else{setQuizWrong(w=>[...w,{...scene,chosen:sel}]);}
+    if(ok){addScore(isTournament?10:5);if(!quizWrong.length)achieve("flawless");setBytState({msg:bytMsg("correct",lang),mood:"correct"});}
+    else{setQuizWrong(w=>[...w,{...scene,chosen:sel}]);loseHeart();setBytState({msg:bytMsg("wrong",lang),mood:"wrong"});}
     if(!bonusQuizDone&&BONUS_QUIZ[scene.id]?.length){setSubPhase("bonus-quiz");}
     else{afterQuiz(scene,ok);}
   };
@@ -1516,6 +1817,7 @@ export default function App(){
     if(item){const existing=inventory.find(i=>i.id===scene.id);if(!existing){const ni=[...inventory,{id:scene.id,...item}];setInventory(ni);try{localStorage.setItem("tdc_inv",JSON.stringify(ni));}catch{}}}
     if(!learned.find(l=>l.id===scene.id)&&scene.concept){setLearned(l=>[...l,{id:scene.id,...scene.concept}]);}
     if(inventory.length>=5)achieve("collector");
+    addGems(5);
     nextScene();
   };
 
@@ -1546,13 +1848,19 @@ export default function App(){
 
   // Header
   const xpData=getLevel(xp);
+  const dlGoalId3=settings.dailyGoal||"regular";const dlGoalPts3=DAILY_GOALS.find(g=>g.id===dlGoalId3)?.pts||20;
   const renderHeader=()=>phase==="game"||phase==="end"?(
     <div style={{marginBottom:"1rem"}}>
       <XPBar xpData={xpData} lang={lang} T={T} L={L}/>
+      <DailyGoalBar dailyXP={dailyXP} dailyGoalPts={dlGoalPts3} lang={lang} T={T} L={L}/>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <ProgBar idx={isTournament?tournamentIdx:isInfinite?sceneIdx%SCENES.length:sceneIdx} total={isTournament?tournamentScenes.length:isInfinite?SCENES.length:activeScenes.length} T={T}/>
         <div style={{display:"flex",alignItems:"center",gap:8,marginLeft:8,flexShrink:0}}>
-          <span style={{fontSize:13,fontWeight:500,color:T.am}}>{players[currentPlayer].score} {L.pts}</span>
+          <div style={{display:"flex",alignItems:"center",gap:6}}>
+            <HeartsDisplay hearts={hearts} maxHearts={MAX_HEARTS} T={T}/>
+            <button onClick={()=>setPhase("gem-shop")} style={{background:"none",border:"none",cursor:"pointer",padding:0}}><GemsDisplay gems={gems} T={T}/></button>
+            <span style={{fontSize:13,fontWeight:500,color:T.am}}>{players[currentPlayer].score} {L.pts}</span>
+          </div>
           {isTournament&&<span style={{fontSize:10,background:"rgba(216,90,48,.12)",border:"0.5px solid rgba(216,90,48,.35)",color:T.cr,padding:"2px 8px",borderRadius:4}}>×2</span>}
           {isInfinite&&<span style={{fontSize:10,background:T.al,border:`0.5px solid ${T.ab}`,color:T.am,padding:"2px 8px",borderRadius:4}}>∞</span>}
           <button onClick={()=>setMusicEnabled(m=>!m)} title="Toggle music" style={{background:"transparent",border:"none",color:T.mt,cursor:"pointer",fontSize:14,padding:"2px 5px"}}>{musicEnabled?L.musicOn:L.musicOff}</button>
@@ -1568,7 +1876,17 @@ export default function App(){
     return(<div style={containerStyle}><WelcomeScreen lang={lang} T={T} L={L} onStart={()=>{localStorage.setItem("tdc_welcome","1");setWelcomeSeen(true);setPhase("intro");}}/><Particles particles={particles} T={T}/></div>);
   }
   if(phase==="welcome"||phase==="intro"){
-    return(<div style={containerStyle}><Intro onStart={()=>startGame(0,"solo",false)} onDaily={(idx)=>startGame(idx,"daily",false)} onMulti={()=>setPhase("multi-setup")} onTournament={()=>setPhase("tournament-setup")} onChapterPick={()=>setPhase("chapter-pick")} settings={settings} setSettings={setSettings} streak={streak} xpData={xpData} inventory={inventory}/><Glossary learned={learned} lang={lang} open={glossOpen} onToggle={()=>setGlossOpen(g=>!g)} T={T} L={L}/><Particles particles={particles} T={T}/>{achToast&&<AchToast ach={achToast} T={T} onClose={()=>setAchToast(null)}/>}</div>);
+    const dlGoalId=settings.dailyGoal||"regular";const dlGoalPts=DAILY_GOALS.find(g=>g.id===dlGoalId)?.pts||20;
+    return(<div style={containerStyle}>
+      <SkillPath scenes={activeScenes} inventory={inventory} sceneIdx={sceneIdx} lang={lang} T={T} L={L}
+        onPickScene={(idx)=>{setSceneIdx(idx);}}
+        onStartLesson={(idx)=>{startGame(idx,"solo",false);}}
+        dailyXP={dailyXP} dailyGoalPts={dlGoalPts} hearts={hearts} maxHearts={MAX_HEARTS} gems={gems}
+        weeklyXP={weeklyXP} streak={streak} xpData={xpData} settings={settings} setSettings={setSettings}
+        onMulti={()=>setPhase("multi-setup")} onTournament={()=>setPhase("tournament-setup")} onLeagues={()=>setPhase("leagues")} onGemShop={()=>setPhase("gem-shop")}/>
+      <Glossary learned={learned} lang={lang} open={glossOpen} onToggle={()=>setGlossOpen(g=>!g)} T={T} L={L}/>
+      <Particles particles={particles} T={T}/>{achToast&&<AchToast ach={achToast} T={T} onClose={()=>setAchToast(null)}/>}
+    </div>);
   }
   if(phase==="multi-setup"){return(<div style={containerStyle}><MultiSetup T={T} L={L} settings={settings} setSettings={setSettings} onStart={()=>startGame(0,"multi",false)} onBack={()=>setPhase("intro")}/></div>);}
   if(phase==="tournament-setup"){return(<div style={containerStyle}><TournamentSetup T={T} L={L} lang={lang} allScenes={SCENES} career={career} onStart={(scenes)=>startGame(0,"tournament",false,true,scenes)} onBack={()=>setPhase("intro")}/></div>);}
@@ -1596,6 +1914,8 @@ export default function App(){
   if(phase==="end"){
     return(<div style={containerStyle}>{renderHeader()}<End players={players} currentP={currentPlayer} mode={mode} T={T} L={L} lang={lang} learned={learned} errors={quizWrong} isAllDone={isAllDone||learned.length>=activeScenes.length} onRestart={()=>{setPhase("intro");}} onProfile={()=>setPhase("profile")} onLB={()=>setPhase("leaderboard")} onChapters={()=>setPhase("map")} onReview={()=>setPhase("review")} onCert={()=>setPhase("certificate")} onInfinite={startInfinite}/><Glossary learned={learned} lang={lang} open={glossOpen} onToggle={()=>setGlossOpen(g=>!g)} T={T} L={L}/><Particles particles={particles} T={T}/>{achToast&&<AchToast ach={achToast} T={T} onClose={()=>setAchToast(null)}/>}</div>);
   }
+  if(phase==="leagues"){return(<div style={containerStyle}><LeaguesScreen weeklyXP={weeklyXP} lang={lang} T={T} onBack={()=>setPhase("intro")}/></div>);}
+  if(phase==="gem-shop"){return(<div style={containerStyle}><GemShop gems={gems} hearts={hearts} maxHearts={MAX_HEARTS} lang={lang} T={T} onBuy={(item)=>{if(gems<item.cost)return;spendGems(item.cost);if(item.id==="heart1")setHearts(h=>Math.min(MAX_HEARTS,h+1));if(item.id==="heart5")setHearts(MAX_HEARTS);setBytState({msg:bytMsg("gems",lang),mood:"correct"});}} onClose={()=>setPhase("intro")}/><Particles particles={particles} T={T}/></div>);}
   if(phase!=="game"||!scene)return(<div style={containerStyle}><NBtn onClick={()=>setPhase("intro")} T={T}>← {L.back}</NBtn></div>);
 
   return(
@@ -1610,6 +1930,10 @@ export default function App(){
       {subPhase==="boss"&&pendingBoss&&<BossChallenge boss={pendingBoss} lang={lang} T={T} L={L} onDone={(pts)=>{addScore(pts);achieve("boss_slayer");setPendingBoss(null);setSubPhase("reading");}} addXP={addXP}/>}
       {subPhase==="quiz"&&<Quiz scene={scene} lang={lang} isLast={isTournament?tournamentIdx>=tournamentScenes.length-1:isInfinite?false:sceneIdx>=activeScenes.length-1} T={T} L={L} onSubmit={handleQuizSubmit}/>}
       {subPhase==="bonus-quiz"&&<BonusQuiz sceneId={scene.id} lang={lang} T={T} L={L} addScore={addScore} onDone={()=>{setBonusQuizDone(true);afterQuiz(scene,false);}}/>}
+      {heartLost&&<HeartLostModal hearts={hearts} maxHearts={MAX_HEARTS} gems={gems} lang={lang} T={T} L={L}
+        onGemRefill={()=>{if(gems>=10){spendGems(10);setHearts(h=>Math.min(MAX_HEARTS,h+1));setHeartLost(false);setBytState({msg:bytMsg("gems",lang),mood:"correct"});}}}
+        onContinue={()=>setHeartLost(false)}/>}
+      {bytState&&!heartLost&&<BytMascot msg={bytState.msg} mood={bytState.mood} T={T} onClose={()=>setBytState(null)}/>}
       <Glossary learned={learned} lang={lang} open={glossOpen} onToggle={()=>setGlossOpen(g=>!g)} T={T} L={L}/>
       <Particles particles={particles} T={T}/>
       {achToast&&<AchToast ach={achToast} T={T} onClose={()=>setAchToast(null)}/>}
