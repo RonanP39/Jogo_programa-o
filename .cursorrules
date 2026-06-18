@@ -1,0 +1,169 @@
+# .cursorrules - Cursor/Windsurf AI Editor Rules
+
+This file provides AI editor guidance for consistent development in Terras do Código.
+
+## Architecture
+
+- **Single-file monolithic structure**: App.jsx contains all game logic and UI (~2042 lines).
+- **Phase-based routing**: Components determine UI based on `phase` state variable.
+- **No component fragmentation**: All UI components are functions within App.jsx.
+- **Inline CSS-in-JS**: All styling uses `style={{}}` objects with theme system.
+
+**Do NOT refactor into separate files or component directories.**
+
+## Code Conventions
+
+### Naming
+
+- **Components**: PascalCase (`Reading`, `Quiz`, `ProfileScreen`)
+- **Functions**: camelCase (`handleChoice`, `updateXp`, `achieve`)
+- **Constants**: SCREAMING_SNAKE_CASE (`SCENES`, `BOSSES`, `TH`)
+- **Theme abbreviation**: `T` (e.g., `T[theme].bg`)
+- **Strings helper**: `S()` to select based on language setting
+
+### Bilingual Implementation
+
+All user-facing text must support Portuguese (PT) and English (EN):
+
+```javascript
+const label = {
+  ptLabel: "Começar",
+  enLabel: "Start"
+}
+const text = S(label)  // Returns ptLabel or enLabel based on settings.lang
+```
+
+Always update both language versions when modifying UI text.
+
+### Styling
+
+Use the centralized theme object (`TH`) for all colors:
+
+```javascript
+const TH = {
+  dark: { bg: "#1a1810", am: "#EF9F27", tx: "#e0d4b4", ... },
+  light: { bg: "#f0e8d0", ... },
+  cyber: { bg: "#04040e", ... }
+}
+```
+
+Apply via: `style={{...TH[settings.theme], ...customProps}}`
+
+No CSS classes. All styling is inline.
+
+## Game Mechanics
+
+### Core Systems
+
+- **XP**: 20 progression levels. `updateXp(amount)` handles leveling.
+- **Hearts**: 5-life system. Regenerates 1 every 4 hours. Buy with gems.
+- **Gems**: Currency earned from achievements.
+- **Achievements**: 17 badges. Unlock via `achieve(id)` when conditions met.
+- **Leagues**: Weekly XP-based ranking (6 tiers).
+- **Inventory**: Items collected per chapter. Persistent via localStorage.
+- **Streaks**: Daily consecutive play tracking.
+
+### Data Organization
+
+All game content is hardcoded as module-level objects:
+
+- `SCENES` — 22+ chapter definitions
+- `BOSSES` — Mini-boss challenges
+- `BUGS` — Code debugging exercises
+- `XP_LEVELS` — Progression thresholds
+- `CAREER_PATHS` — 4 specialization branches
+- `LEAGUES` — 6 competitive tiers
+- `ACH_IDS` & `ACH_ICONS` — 17 achievements
+- `UI` — Bilingual UI strings
+- `ANIM_STEPS` — Code execution animations
+
+## Adding Content
+
+### New Chapter
+
+1. Add to `SCENES` array with full bilingual structure.
+2. Update `SkillPath()` UI to include chapter.
+3. Add quiz questions to `BONUS_QUIZ`.
+4. Test XP rewards and choice consequences.
+
+### New Achievement
+
+1. Add ID to `ACH_IDS` array.
+2. Map icon in `ACH_ICONS`.
+3. Add unlock logic in relevant phase function.
+4. Call `achieve(id)` when condition met.
+
+### New Theme
+
+1. Add color object to `TH`.
+2. Update theme selector in `Intro()`.
+3. Test across all UI components.
+
+## localStorage Keys
+
+```javascript
+"tdc_save"       // User settings (theme, language, difficulty)
+"tdc_inv"        // Inventory items
+"tdc_ach"        // Achievements unlocked
+"tdc_xp"         // Total XP
+"tdc_daily_xp"   // Daily progress
+"tdc_hearts"     // Hearts + regeneration timer
+"tdc_lb"         // Leaderboard scores
+"tdc_tourney"    // Tournament records
+```
+
+## Testing Requirements
+
+Before suggesting code completion or changes:
+
+- ✅ No console errors in dev mode
+- ✅ Works in both themes (dark, light, cyber)
+- ✅ Works in both languages (Portuguese, English)
+- ✅ Responsive on mobile devices
+- ✅ All bilingual strings present (search for `ptLabel`/`enLabel`)
+- ✅ localStorage persistence verified
+- ✅ No regressions in existing gameplay
+
+## Build & Deployment
+
+```bash
+npm run dev      # Local dev server
+npm run build    # Production build
+npm run preview  # Build preview
+```
+
+- **Vite**: Configured with React plugin and GitHub Pages base path (`/Jogo_programa-o/`).
+- **Deployment**: Automatic to GitHub Pages on `main` push via CI/CD.
+- **Base path**: Account for subpath routing in relative URLs.
+
+## External Dependencies
+
+- **React 18.3.1**: UI framework
+- **Vite 5.4.2**: Bundler & dev server
+- **Anthropic Claude API**: AI quiz generation (requires API key)
+- **Tabler Icons**: Icon font library
+
+Do NOT add heavy dependencies without maintainer approval.
+
+## Important Gotchas
+
+1. **Monolithic file**: 2042 lines in App.jsx. Suggest refactoring only if absolutely necessary and reviewed.
+2. **No test infrastructure**: Manually test all gameplay paths.
+3. **localStorage-only persistence**: No backend database. Player progress resets on cache clear.
+4. **GitHub Pages subpath**: Account for `/Jogo_programa-o/` base path in routing.
+5. **Bilingual strings scattered**: Always search for `ptLabel`/`ptText` + `enLabel`/`enText`.
+6. **Theme applied inline**: Update `TH` object for color changes, not CSS files.
+7. **API dependency**: Quiz generation fails gracefully if Anthropic API unavailable.
+
+## References
+
+- **AGENTS.md**: Comprehensive technical guide for AI agents
+- **README.md**: Game overview and features
+- **SECURITY.md**: Security policy
+- **package.json**: Dependencies and build scripts
+- **vite.config.js**: Build configuration
+
+---
+
+**Guidelines Version**: 1.0 (June 2026)  
+For questions, consult AGENTS.md or open an issue on GitHub.
